@@ -28,6 +28,18 @@ Este repositorio es la **plantilla de inicio** para los proyectos transversales.
 5. **Empieza a implementar** en la carpeta correcta — no tires todo en la raíz.
 6. **Documenta** lo que añadas: cada app, servicio, agente o pipeline nuevo lleva subcarpeta + README.
 
+## Ejecutar la landing localmente (Codespaces)
+
+Este proyecto incluye una landing estatica y un formulario de aplicacion en la raiz del repositorio.
+
+Usa este comando desde la carpeta raiz:
+
+```bash
+npx serve .
+```
+
+Luego abre la URL reenviada por Codespaces (por ejemplo, `https://<tu-codespace-url>`).
+
 ---
 
 ## Cómo entender este monorepo

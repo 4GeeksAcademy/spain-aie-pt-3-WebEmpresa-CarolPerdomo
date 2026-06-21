@@ -28,6 +28,18 @@ This repository is the **starter template** for transversal projects. You will w
 5. **Start implementing** in the right folder — do not dump everything in the root.
 6. **Document** what you add: each new app, service, agent, or pipeline gets a subfolder + README.
 
+## Run the Landing Locally (Codespaces)
+
+This project includes a static landing page and application form in the repository root.
+
+Use this command from the root folder:
+
+```bash
+npx serve .
+```
+
+Then open the forwarded URL in Codespaces (for example, `https://<your-codespace-url>`).
+
 ---
 
 ## How to think about this monorepo

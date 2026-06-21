@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aplicacion | Nexova Solutions</title>
+  <meta
+    name="description"
+    content="Formulario de aplicacion para empresas que buscan headhunting, outsourcing de soporte o formacion corporativa con Nexova Solutions."
+  />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="validation.js" defer></script>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <header class="border-b border-slate-800 bg-slate-950/95" role="banner">
+    <div class="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <a href="index.html" class="text-lg font-semibold">Nexova Solutions</a>
+      <nav aria-label="Navegacion secundaria">
+        <a
+          href="index.html"
+          class="rounded-md px-3 py-2 text-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
+        >
+          Volver al inicio
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="formulario-aplicacion" class="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8" role="main">
+    <section class="grid gap-6 rounded-2xl border border-slate-800 bg-slate-900 p-6 lg:grid-cols-3">
+      <article class="lg:col-span-1">
+        <h1 class="text-2xl font-semibold sm:text-3xl">Aplicacion para diagnostico de talento</h1>
+        <p class="mt-3 text-sm text-slate-300 sm:text-base">
+          Completa este formulario para que el equipo de Nexova evalue tu situacion actual en seleccion, soporte y formacion corporativa.
+        </p>
+        <img
+          src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=80"
+          alt="Equipo de consultoria revisando planes de contratacion y soporte"
+          class="mt-5 h-40 w-full rounded-xl object-cover"
+          loading="lazy"
+        />
+        <ul class="mt-5 space-y-2 text-sm text-slate-200">
+          <li>Respuesta inicial en 48 horas habiles.</li>
+          <li>Analisis alineado con SLA objetivo de 24 horas para soporte.</li>
+          <li>Plan enfocado en empresas medianas de tecnologia, retail y finanzas.</li>
+        </ul>
+      </article>
+
+      <section class="lg:col-span-2" aria-labelledby="form-title">
+        <h2 id="form-title" class="text-xl font-semibold">Datos de la empresa y necesidad actual</h2>
+
+        <div id="form-status" class="mt-4 hidden rounded-md border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
+
+        <form id="nexova-application-form" class="mt-5 space-y-6" novalidate>
+          <fieldset class="rounded-xl border border-slate-700 p-4">
+            <legend class="px-2 text-sm font-semibold text-cyan-200">Empresa</legend>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label for="company_name" class="mb-1 block text-sm font-medium">Nombre legal de la empresa *</label>
+                <input id="company_name" name="company_name" type="text" required autocomplete="organization" class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-company_name" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="contact_name" class="mb-1 block text-sm font-medium">Nombre del contacto principal *</label>
+                <input id="contact_name" name="contact_name" type="text" required autocomplete="name" class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-contact_name" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="contact_role" class="mb-1 block text-sm font-medium">Cargo del contacto *</label>
+                <input id="contact_role" name="contact_role" type="text" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-contact_role" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="employee_count" class="mb-1 block text-sm font-medium">Cantidad de empleados *</label>
+                <input id="employee_count" name="employee_count" type="number" min="20" max="5000" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-employee_count" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="sector" class="mb-1 block text-sm font-medium">Sector principal *</label>
+                <select id="sector" name="sector" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30">
+                  <option value="">Selecciona una opcion</option>
+                  <option value="tecnologia">Tecnologia</option>
+                  <option value="retail">Retail</option>
+                  <option value="servicios_financieros">Servicios financieros</option>
+                </select>
+                <p id="error-sector" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="operation_country" class="mb-1 block text-sm font-medium">Pais principal de operacion *</label>
+                <select id="operation_country" name="operation_country" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30">
+                  <option value="">Selecciona una opcion</option>
+                  <option value="espana">Espana</option>
+                  <option value="chile">Chile</option>
+                  <option value="argentina">Argentina</option>
+                  <option value="estados_unidos">Estados Unidos</option>
+                </select>
+                <p id="error-operation_country" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="rounded-xl border border-slate-700 p-4">
+            <legend class="px-2 text-sm font-semibold text-cyan-200">Alcance del servicio</legend>
+
+            <div>
+              <p class="mb-2 text-sm font-medium">Linea de negocio de interes * (elige al menos una)</p>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <label class="inline-flex items-start gap-2 rounded-md border border-slate-700 p-3 text-sm">
+                  <input type="checkbox" name="service_lines" value="headhunting_mandos_medios_directivos" class="mt-1 h-4 w-4 accent-cyan-300" />
+                  <span>Headhunting para mandos medios y directivos</span>
+                </label>
+                <label class="inline-flex items-start gap-2 rounded-md border border-slate-700 p-3 text-sm">
+                  <input type="checkbox" name="service_lines" value="outsourcing_soporte_cliente" class="mt-1 h-4 w-4 accent-cyan-300" />
+                  <span>Outsourcing de soporte al cliente</span>
+                </label>
+                <label class="inline-flex items-start gap-2 rounded-md border border-slate-700 p-3 text-sm sm:col-span-2">
+                  <input type="checkbox" name="service_lines" value="formacion_habilidades_liderazgo" class="mt-1 h-4 w-4 accent-cyan-300" />
+                  <span>Formacion corporativa en habilidades blandas y liderazgo</span>
+                </label>
+              </div>
+              <p id="error-service_lines" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+            </div>
+
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label for="main_challenge" class="mb-1 block text-sm font-medium">Reto principal actual *</label>
+                <select id="main_challenge" name="main_challenge" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30">
+                  <option value="">Selecciona una opcion</option>
+                  <option value="cribado_manual_cvs">Cribado manual de CVs y baja trazabilidad</option>
+                  <option value="incumplimiento_sla_24h">Incumplimiento de SLA de soporte (24h objetivo)</option>
+                  <option value="catalogo_formacion_sin_plataforma">Catalogo de formacion sin plataforma digital</option>
+                  <option value="pipeline_ventas_sin_seguimiento">Pipeline comercial con seguimiento inconsistente</option>
+                  <option value="reporteria_ejecutiva_manual">Reporteria ejecutiva manual y datos desactualizados</option>
+                </select>
+                <p id="error-main_challenge" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="target_start_date" class="mb-1 block text-sm font-medium">Fecha objetivo de inicio *</label>
+                <input id="target_start_date" name="target_start_date" type="date" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-target_start_date" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="support_sla_target_hours" class="mb-1 block text-sm font-medium">SLA objetivo para soporte (horas)</label>
+                <input id="support_sla_target_hours" name="support_sla_target_hours" type="number" min="1" max="168" value="24" class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-support_sla_target_hours" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="monthly_budget_usd" class="mb-1 block text-sm font-medium">Presupuesto mensual estimado (USD) *</label>
+                <input id="monthly_budget_usd" name="monthly_budget_usd" type="number" min="1000" max="500000" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-monthly_budget_usd" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="rounded-xl border border-slate-700 p-4">
+            <legend class="px-2 text-sm font-semibold text-cyan-200">Contacto y consentimiento</legend>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label for="email" class="mb-1 block text-sm font-medium">Email corporativo *</label>
+                <input id="email" name="email" type="email" required autocomplete="email" class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-email" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div>
+                <label for="phone" class="mb-1 block text-sm font-medium">Telefono de contacto *</label>
+                <input id="phone" name="phone" type="tel" required autocomplete="tel" class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" />
+                <p id="error-phone" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div class="sm:col-span-2">
+                <label for="project_context" class="mb-1 block text-sm font-medium">Describe tu situacion actual y objetivo de mejora *</label>
+                <textarea id="project_context" name="project_context" rows="4" required class="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30"></textarea>
+                <p id="error-project_context" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="inline-flex items-start gap-2 text-sm">
+                  <input id="terms" name="terms" type="checkbox" required class="mt-1 h-4 w-4 accent-cyan-300" />
+                  <span>Acepto que Nexova Solutions use esta informacion para preparar una propuesta inicial. *</span>
+                </label>
+                <p id="error-terms" class="mt-1 text-xs text-rose-300" role="alert" aria-live="polite"></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              class="rounded-md bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+            >
+              Enviar aplicacion
+            </button>
+            <button
+              id="reset-btn"
+              type="reset"
+              class="rounded-md border border-slate-600 px-5 py-3 text-sm font-semibold transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+            >
+              Limpiar formulario
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
