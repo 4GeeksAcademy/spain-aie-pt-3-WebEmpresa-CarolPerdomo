@@ -40,6 +40,23 @@ npx serve .
 
 Luego abre la URL reenviada por Codespaces (por ejemplo, `https://<tu-codespace-url>`).
 
+## Validar utilidades TypeScript
+
+Este repositorio incluye utilidades TypeScript reutilizables en `src/` para manejo de colecciones, busquedas, transformaciones y validaciones de negocio.
+
+Comandos desde la raiz del proyecto:
+
+```bash
+npm install
+npm run typecheck
+```
+
+Opcionalmente, para compilar salida en `dist/`:
+
+```bash
+npm run build
+```
+
 ---
 
 ## Cómo entender este monorepo

@@ -40,6 +40,23 @@ npx serve .
 
 Then open the forwarded URL in Codespaces (for example, `https://<your-codespace-url>`).
 
+## Validate TypeScript Utilities
+
+This repository includes reusable TypeScript utilities inside `src/` for collection handling, searching, transformations, and business validations.
+
+Run from the repository root:
+
+```bash
+npm install
+npm run typecheck
+```
+
+Optional build output in `dist/`:
+
+```bash
+npm run build
+```
+
 ---
 
 ## How to think about this monorepo

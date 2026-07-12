@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prueba utilidades TypeScript - Nexova</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-slate-100 text-slate-900">
+    <main class="mx-auto max-w-5xl px-4 py-8">
+      <header class="mb-6">
+        <h1 class="text-2xl font-bold">Prueba manual de utilidades TypeScript</h1>
+        <p class="mt-2 text-sm text-slate-700">
+          Esta pagina usa los modulos compilados en dist/. Ejecuta primero
+          <strong>npm run build</strong>.
+        </p>
+      </header>
+
+      <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Acciones de prueba">
+        <button id="btn-filter" class="rounded-lg bg-cyan-700 px-4 py-2 font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          Filtrar por sector
+        </button>
+        <button id="btn-sort" class="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          Ordenar por experiencia
+        </button>
+        <button id="btn-search" class="rounded-lg bg-amber-700 px-4 py-2 font-medium text-white hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+          Buscar por email
+        </button>
+        <button id="btn-report" class="rounded-lg bg-indigo-700 px-4 py-2 font-medium text-white hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          Generar reporte
+        </button>
+      </section>
+
+      <section class="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="text-lg font-semibold">Resultado</h2>
+        <pre id="output" class="mt-3 overflow-auto rounded bg-slate-900 p-4 text-sm text-slate-100" aria-live="polite">Esperando accion...</pre>
+      </section>
+    </main>
+
+    <script type="module">
+      const output = document.getElementById("output");
+
+      function print(value) {
+        output.textContent = JSON.stringify(value, null, 2);
+      }
+
+      try {
+        const mod = await import("../dist/index.js");
+        const registros = [...mod.registrosEjemplo];
+
+        document.getElementById("btn-filter").addEventListener("click", () => {
+          const result = mod.filterByPredicate(
+            registros,
+            (item) => item.sectorInteres === "Tecnologia"
+          );
+          print(result);
+        });
+
+        document.getElementById("btn-sort").addEventListener("click", () => {
+          const result = mod.sortByCriterion(registros, {
+            selector: (item) => item.aniosExperiencia,
+            direction: "desc"
+          });
+          print(result);
+        });
+
+        document.getElementById("btn-search").addEventListener("click", () => {
+          const ordered = mod.sortByCriterion(registros, {
+            selector: (item) => item.email,
+            direction: "asc"
+          });
+          const result = mod.binarySearchByStringKey(
+            ordered,
+            (item) => item.email,
+            "luis.fernandez@example.com"
+          );
+          print(result);
+        });
+
+        document.getElementById("btn-report").addEventListener("click", () => {
+          const validos = registros.filter((item) => mod.validarTalentoRegistro(item).isValid);
+          const result = mod.generarReporteTalento(validos);
+          print(result);
+        });
+      } catch (error) {
+        output.textContent =
+          "No se pudieron cargar los modulos compilados. Ejecuta npm run build y vuelve a abrir esta pagina.\n\n" +
+          String(error);
+      }
+    </script>
+  </body>
+</html>

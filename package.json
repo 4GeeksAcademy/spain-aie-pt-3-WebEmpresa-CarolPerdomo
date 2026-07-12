@@ -1,0 +1,13 @@
+{
+  "name": "nexova-ts-utils",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --project tsconfig.json",
+    "render:console": "npx -y tsx -e \"import { registrosEjemplo, filterByPredicate, sortByCriterion, binarySearchByStringKey, generarReporteTalento } from './src/index.ts'; const filtrados = filterByPredicate(registrosEjemplo, r => r.sectorInteres === 'Tecnologia'); const ordenados = sortByCriterion(registrosEjemplo, { selector: r => r.email, direction: 'asc' }); const encontrado = binarySearchByStringKey(ordenados, r => r.email, 'luis.fernandez@example.com'); const reporte = generarReporteTalento(registrosEjemplo); console.log('=== RENDER CONSOLA ==='); console.log('Filtrados:', filtrados.length); console.log('Registro encontrado:', encontrado?.id ?? 'no encontrado'); console.log('Promedio experiencia:', reporte.promedioAniosExperiencia); console.log('Detalle reporte:'); console.dir(reporte, { depth: null });\""
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
