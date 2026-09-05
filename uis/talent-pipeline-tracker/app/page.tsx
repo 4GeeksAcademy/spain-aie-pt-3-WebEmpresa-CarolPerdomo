@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CandidateForm } from "@/components/CandidateForm";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import { candidateName, candidatePosition, stageLabels, stages, statusLabels, statuses, type Candidate, type Stage, type Status } from "@/types";
 
-export default function Home() {
+function TalentPipelineContent() {
   const router = useRouter(); const pathname = usePathname(); const params = useSearchParams();
   const [candidates, setCandidates] = useState<Candidate[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [search, setSearch] = useState(""); const [showForm, setShowForm] = useState(false);
   const status = params.get("status") || ""; const stage = params.get("stage") || "";
@@ -22,4 +22,12 @@ export default function Home() {
       {!loading && !error && filtered.length > 0 && <div className="candidate-list">{filtered.map((candidate) => <Link className="candidate-row" href={`/candidates/${candidate.id}`} key={candidate.id}><div className="avatar">{candidateName(candidate).slice(0, 1).toUpperCase()}</div><div className="candidate-main"><strong>{candidateName(candidate)}</strong><span>{candidate.email}</span></div><div className="candidate-position">{candidatePosition(candidate)}</div><StatusBadge value={candidate.status} /><StatusBadge value={candidate.stage} kind="stage" /><span className="row-arrow">→</span></Link>)}</div>}
     </section>
   </main>;
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<main className="shell"><div className="state">Cargando aplicación...</div></main>}>
+      <TalentPipelineContent />
+    </Suspense>
+  );
 }
