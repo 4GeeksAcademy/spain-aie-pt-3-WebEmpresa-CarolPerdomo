@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-paper: #f1f3ed;
+  --color-ink: #1c302a;
+  --color-pine: #23483d;
+  --color-leaf: #d9ec8a;
+  --color-coral: #d96c53;
+  --color-line: #d5ddd3;
+  --color-muted: #66776f;
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-dm-serif);
+}
