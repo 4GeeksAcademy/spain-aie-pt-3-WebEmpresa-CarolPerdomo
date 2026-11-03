@@ -2,6 +2,8 @@
 
 **Estado:** propuesta; el repositorio todavía no contiene una API backend.
 
+Los nombres de carpetas y archivos describen responsabilidades, no exigen adoptar bibliotecas adicionales. Las dependencias concretas de persistencia, configuración y migraciones se decidirán según el temario y las decisiones del equipo.
+
 ## Contexto y decisión
 
 Nexova es una consultora de recursos humanos y adquisición de talento fundada en 2011, con unos 120 empleados y oficinas en Valencia y Miami. Su negocio abarca selección ejecutiva y de mandos medios, equipos externalizados de atención al cliente y formación corporativa. Hoy hay herramientas desconectadas y los CV pueden llegar por correo sin estructura; el sitio público y las aplicaciones internas del monorepo aún no comparten una API ni persistencia centralizada. El tracker de talento existe como frontend, pero sus métricas de backoffice son datos de referencia, no datos conectados a un servicio.
