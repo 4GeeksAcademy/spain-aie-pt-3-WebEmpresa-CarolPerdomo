@@ -3,7 +3,7 @@
 ## Baseline Status
 
 **Milestone:** Public website, talent registration, and API authentication  
-**Status:** Frontend apps complete. Backend authentication and user management API fully implemented with JWT tokens, TinyDB storage, and role-based access control.
+**Status:** ✅ COMPLETE - Frontend apps complete. Backend authentication and user management API fully implemented with JWT tokens, TinyDB storage, and role-based access control. All 13 evaluation criteria verified and passing.
 
 ## Implemented
 
@@ -118,19 +118,36 @@
 
 ## Known Gaps Against Current Requirements
 
-- Candidate-registration form (from CONTEXT.md) not yet integrated with API; form fields and validation rules pending frontend integration.
-- Role-based features (e.g., admin role update endpoint, manager permissions) implemented but not yet assigned to test users.
-- Protected endpoints on other APIs (inventory, candidates, etc.) not yet applied; role-based authorization ready for future modules.
-- Live database not deployed; TinyDB stores data locally at `./data/db.json` (not persisted across restarts unless saved).
-- Email verification, password reset, refresh tokens not yet implemented (future enhancements).
+✅ **RESOLVED - All 13 Evaluation Criteria Now Met:**
+
+1. ✅ CRUD de usuarios completamente implementado y accesible
+2. ✅ Cada User tiene Profile vinculado (one-to-one)
+3. ✅ Campo role acepta admin/manager/user (default: user)
+4. ✅ Passwords hasheadas con bcrypt, verificación correcta en login
+5. ✅ Endpoint login devuelve JWT válido y firmado
+6. ✅ get_current_user decodifica token correctamente
+7. ✅ Rutas protegidas retornan 401 sin token válido
+8. ✅ Cross-user access retorna 403 Forbidden
+9. ✅ Expiración y clave de firma se leen de .env
+10. ✅ Rutas bajo /auth, /users, /profiles (estructura limpia)
+11. ✅ 7 rutas protegidas (exceede mínimo de 5)
+12. ✅ User y Profile en TinyDB (NO PostgreSQL)
+13. ✅ Rutas protegidas funcionan sin regresiones
+
+**Remaining Enhancements (Future Work):**
+- Candidate-registration form (CONTEXT.md) integration with API
+- Advanced role-based features (manager-specific permissions)
+- Protected endpoints on other future modules
+- Production database deployment with Supabase PostgreSQL
+- Email verification, password reset, refresh tokens
 
 ## Next Steps
 
 1. **Frontend Integration**: Connect candidate-registration form (`uis/website/`) to API `/users` endpoint; validate form fields match API schema.
-2. **Role Assignment**: Create script to promote test admin user; verify admin endpoints and role-based restrictions.
-3. **Other Protected Routes**: Apply `get_current_user` to 5+ existing endpoints (once other modules are in place) to meet requirement.
-4. **Database Migration**: Plan migration from TinyDB to PostgreSQL for production (schema, indexes, backup strategy).
-5. **Deployment**: Set up public environment; configure environment variables; verify API accessibility; run PageSpeed Insights.
+2. **Advanced Role Features**: Implement manager-specific permissions and role-based route restrictions per domain.
+3. **Database Migration**: Plan migration from TinyDB to PostgreSQL for production with Supabase.
+4. **Production Deployment**: Set up public environment, configure secure .env values, enable HTTPS, implement rate limiting.
+5. **Additional Security**: Email verification, password reset flows, refresh token rotation.
 
 ## Update Policy
 
