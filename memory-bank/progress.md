@@ -48,6 +48,34 @@
   - `GET /profiles/me` — Get authenticated user's profile
   - `PUT /profiles/me` — Update own profile (name, phone, address)
 
+**Security & Access Control**:
+  - `get_current_user` dependency extracts and validates Bearer token from `Authorization` header
+  - HTTPException(401) for invalid/expired tokens; HTTPException(403) for permission denied
+  - Pydantic input validation on all endpoints
+  - Email format validation with email-validator
+  - CORS configured for development (all origins)
+
+**Database & Configuration**:
+  - TinyDB database file: `./data/db.json` (auto-created)
+  - Environment configuration: `.env` file (auto-created with defaults)
+  - Token expiration: `ACCESS_TOKEN_EXPIRE_MINUTES` env var (default 30)
+  - Secret key: `SECRET_KEY` env var (required)
+  - Database auto-initializes tables on first server start
+
+**Documentation**:
+  - `API_README.md` (8543 bytes) — Complete API reference with cURL examples
+  - `AUTH_IMPLEMENTATION.md` (6580 bytes) — Overview, usage guide, configuration
+  - `PROTECTING_ENDPOINTS.md` (6982 bytes) — Patterns for protecting existing endpoints
+  - `GETTING_STARTED.md` (6364 bytes) — Quick-start guide for developers
+  - Swagger UI: `GET /docs` — Interactive API explorer
+  - ReDoc: `GET /redoc` — Alternative API documentation
+
+**Server & Testing**:
+  - `start_server.sh` — Startup script with environment setup
+  - `test_api.sh` — Comprehensive test suite for all endpoints
+  - `main.py` — FastAPI app factory with route registration
+  - All endpoints tested and verified working
+
 **Security**:
   - `get_current_user` dependency extracts, validates, and returns authenticated user
   - `HTTPException(401)` for missing/invalid/expired tokens
