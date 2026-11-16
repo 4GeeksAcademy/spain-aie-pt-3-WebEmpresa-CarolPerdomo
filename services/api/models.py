@@ -5,15 +5,22 @@ from datetime import datetime
 
 # ============ Auth Models ============
 
+class RoleEnum(str, Enum):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    USER = "user"
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     name: Optional[str] = None
+    role: RoleEnum = RoleEnum.USER
 
 class UserResponse(BaseModel):
     id: int
     email: str
     name: Optional[str] = None
+    role: str
     created_at: datetime
     
     class Config:

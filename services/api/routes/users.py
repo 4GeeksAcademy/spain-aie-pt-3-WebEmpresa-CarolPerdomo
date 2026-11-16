@@ -31,6 +31,7 @@ def get_current_user_info(
         id=user['id'],
         email=user['email'],
         name=user.get('name'),
+        role=user.get('role', 'user'),
         created_at=user['created_at']
     )
 
@@ -63,6 +64,7 @@ def get_user(
         id=user['id'],
         email=user['email'],
         name=user.get('name'),
+        role=user.get('role', 'user'),
         created_at=user['created_at']
     )
 
@@ -103,6 +105,7 @@ def update_user(
         id=updated_user['id'],
         email=updated_user['email'],
         name=updated_user.get('name'),
+        role=updated_user.get('role', 'user'),
         created_at=updated_user['created_at']
     )
 

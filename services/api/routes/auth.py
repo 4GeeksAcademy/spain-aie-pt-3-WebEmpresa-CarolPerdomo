@@ -18,6 +18,7 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
     - **email**: Valid email address (must be unique)
     - **password**: Minimum 8 characters
     - **name**: Optional; if not provided, a default name is generated
+    - **role**: Optional; defaults to 'user'. Accepts: admin, manager, user
     
     Returns access token and user info.
     """
@@ -25,7 +26,8 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
     new_user = db.create_user(
         email=user_data.email,
         password=user_data.password,
-        name=user_data.name
+        name=user_data.name,
+        role=user_data.role
     )
     
     if not new_user:
@@ -34,8 +36,8 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
             detail="Email already registered"
         )
     
-    # Generate token
-    access_token = AuthService.create_access_token(new_user['id'], new_user['email'])
+    # Generate token with role
+    access_token = AuthService.create_access_token(new_user['id'], new_user['email'], new_user['role'])
     
     return TokenResponse(
         access_token=access_token,
@@ -44,6 +46,7 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
             id=new_user['id'],
             email=new_user['email'],
             name=new_user['name'],
+            role=new_user['role'],
             created_at=new_user['created_at']
         )
     )
@@ -63,8 +66,8 @@ def login(credentials: LoginRequest, db: SuppliersDB = Depends(get_db)):
             detail="Invalid email or password"
         )
     
-    # Generate token
-    access_token = AuthService.create_access_token(user['id'], user['email'])
+    # Generate token with role
+    access_token = AuthService.create_access_token(user['id'], user['email'], user.get('role', 'user'))
     
     return TokenResponse(
         access_token=access_token,
@@ -73,6 +76,7 @@ def login(credentials: LoginRequest, db: SuppliersDB = Depends(get_db)):
             id=user['id'],
             email=user['email'],
             name=user.get('name'),
+            role=user.get('role', 'user'),
             created_at=user['created_at']
         )
     )

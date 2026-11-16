@@ -29,7 +29,7 @@ class SuppliersDB:
             return result_dict
         return result_or_list
     
-    def create_user(self, email: str, password: str, name: str = None) -> dict:
+    def create_user(self, email: str, password: str, name: str = None, role: str = "user") -> dict:
         """Create a user and auto-create their profile."""
         # Check if email already exists
         User = Query()
@@ -41,6 +41,7 @@ class SuppliersDB:
             'email': email,
             'password': hashed_password,
             'name': name or f"User_{email.split('@')[0]}",
+            'role': role,
             'created_at': datetime.utcnow().isoformat()
         }
         user_id = self.users_table.insert(new_user)
@@ -86,7 +87,7 @@ class SuppliersDB:
     
     def update_user(self, user_id: int, **kwargs) -> dict:
         """Update user fields (excluding password)."""
-        allowed_fields = {'name', 'email'}
+        allowed_fields = {'name', 'email', 'role'}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         
         if not updates:

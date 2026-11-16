@@ -33,11 +33,12 @@ class AuthService:
         return bcrypt.checkpw(password.encode(), hashed.encode())
     
     @staticmethod
-    def create_access_token(user_id: int, email: str) -> str:
+    def create_access_token(user_id: int, email: str, role: str = "user") -> str:
         """Create a JWT access token."""
         payload = {
             "user_id": user_id,
             "email": email,
+            "role": role,
             "iat": datetime.utcnow(),
             "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         }
