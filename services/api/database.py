@@ -1,7 +1,7 @@
 from tinydb import TinyDB, Query
 from pathlib import Path
 from datetime import datetime
-from models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
+from .models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
 
 DB_PATH = Path("data") / "suppliers.json"
 DB_PATH.parent.mkdir(exist_ok=True)

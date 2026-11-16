@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directorio de Proveedores - Nexova</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f8f9fa; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .header { margin-bottom: 2rem; text-align: center; }
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { color: #666; }
+        .controls { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+        .filter { display: flex; flex-direction: column; gap: 0.5rem; }
+        .filter label { font-weight: 600; font-size: 0.9rem; }
+        .filter select, button { padding: 0.75rem 1rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
+        .btn-add { background: #4CAF50; color: white; border: none; cursor: pointer; font-weight: 600; }
+        .btn-add:hover { background: #45a049; }
+        .table-container { background: white; border-radius: 12px; overflow-x: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f0f0f0; border-bottom: 2px solid #ddd; }
+        th { padding: 1rem; text-align: left; font-weight: 600; }
+        td { padding: 1rem; border-bottom: 1px solid #eee; }
+        tbody tr:hover { background: #f9f9f9; }
+        .status { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
+        .status.active { background: #c8e6c9; color: #2e7d32; }
+        .status.suspended { background: #ffccbc; color: #d84315; }
+        .badges { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .badge { display: inline-block; padding: 0.3rem 0.8rem; background: #e3f2fd; color: #1976d2; border-radius: 20px; font-size: 0.8rem; }
+        .actions { display: flex; gap: 0.5rem; }
+        .btn-action { padding: 0.4rem 0.6rem; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+        .btn-edit { background: #2196F3; color: white; }
+        .btn-toggle { background: #ff9800; color: white; }
+        .btn-delete { background: #f44336; color: white; }
+        .error { color: #c33; padding: 1rem; background: #fee; border-radius: 6px; margin-bottom: 1rem; border-left: 4px solid #f44336; }
+        .success { color: #2e7d32; padding: 1rem; background: #c8e6c9; border-radius: 6px; margin-bottom: 1rem; border-left: 4px solid #4CAF50; }
+        .loading { text-align: center; padding: 2rem; color: #666; }
+        .empty { padding: 3rem 2rem; text-align: center; color: #666; }
+        .info { padding: 0.75rem 1rem; background: #e1f5fe; color: #01579b; border-radius: 6px; margin-bottom: 1rem; }
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; }
+            .filter, .btn-add { width: 100%; }
+            table { font-size: 0.9rem; }
+            th, td { padding: 0.75rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <div class="header">
+            <h1>📦 Directorio de Proveedores</h1>
+            <p>Nexova Solutions - Sistema de Gestión de Proveedores</p>
+        </div>
+
+        <div v-if="error" class="error">
+            <strong>❌ Error:</strong> {{ error }}
+            <button @click="retryConnection" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #f44336; color: white; border: none; cursor: pointer; border-radius: 4px;">
+                Reintentar
+            </button>
+        </div>
+
+        <div v-if="!error && suppliers.length > 0" class="info">
+            <strong>✅ Conectado a la API</strong> - {{ suppliers.length }} proveedores cargados
+        </div>
+
+        <div class="controls" v-if="suppliers.length > 0">
+            <div class="filter">
+                <label for="countryFilter">País:</label>
+                <select id="countryFilter" v-model="filters.country">
+                    <option value="">Todos</option>
+                    <option value="Spain">España</option>
+                    <option value="USA">USA</option>
+                </select>
+            </div>
+            <div class="filter">
+                <label for="categoryFilter">Categoría:</label>
+                <select id="categoryFilter" v-model="filters.category">
+                    <option value="">Todas</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Logistics">Logistics</option>
+                    <option value="Finance">Finance</option>
+                </select>
+            </div>
+            <button class="btn-add" @click="clearFilters">🔄 Limpiar Filtros</button>
+        </div>
+
+        <div v-if="loading" class="loading">
+            <p>⏳ Cargando proveedores...</p>
+        </div>
+
+        <div v-else-if="filteredSuppliers.length === 0" class="empty">
+            <p v-if="suppliers.length === 0">📭 No hay proveedores disponibles</p>
+            <p v-else>🔍 No hay proveedores que coincidan con los filtros</p>
+        </div>
+
+        <div v-else class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>País</th>
+                        <th>Categoría</th>
+                        <th>Teléfono</th>
+                        <th>Email</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="supplier in filteredSuppliers" :key="supplier.id">
+                        <td><strong>{{ supplier.name }}</strong></td>
+                        <td>{{ supplier.country }}</td>
+                        <td>
+                            <div class="badges">
+                                <span class="badge">{{ supplier.category }}</span>
+                            </div>
+                        </td>
+                        <td>{{ supplier.phone || 'N/A' }}</td>
+                        <td>{{ supplier.email || 'N/A' }}</td>
+                        <td>
+                            <span :class="['status', supplier.status === 'active' ? 'active' : 'suspended']">
+                                {{ supplier.status === 'active' ? '✅ Activo' : '❌ Suspendido' }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn-action btn-toggle" @click="toggleStatus(supplier)" :title="supplier.status === 'active' ? 'Suspender' : 'Activar'">
+                                    {{ supplier.status === 'active' ? '🔒' : '🔓' }}
+                                </button>
+                                <button class="btn-action btn-delete" @click="deleteSupplier(supplier)" title="Eliminar">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const suppliers = ref([]);
+                const loading = ref(false);
+                const error = ref('');
+                const filters = ref({ country: '', category: '' });
+
+                const fetchSuppliers = async () => {
+                    loading.value = true;
+                    error.value = '';
+                    
+                    try {
+                        const url = '/api/suppliers';
+                        console.log('📡 GET', url);
+                        
+                        const response = await fetch(url);
+                        console.log('📊 Response status:', response.status);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // Asegurar que cada proveedor tiene ID
+                        suppliers.value = data.map((s, idx) => ({
+                            ...s,
+                            id: s.id || (idx + 1)
+                        }));
+                        
+                        console.log(`✅ ${suppliers.value.length} proveedores cargados correctamente`);
+                    } catch (err) {
+                        const errorMsg = `No se puede conectar a la API: ${err.message}`;
+                        error.value = errorMsg;
+                        console.error('❌', errorMsg);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const toggleStatus = async (supplier) => {
+                    const newStatus = supplier.status === 'active' ? 'suspended' : 'active';
+                    try {
+                        const response = await fetch(`/api/suppliers/${supplier.id}/status`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        
+                        if (response.ok) {
+                            supplier.status = newStatus;
+                            console.log(`✅ Estado actualizado: ${supplier.name} -> ${newStatus}`);
+                        }
+                    } catch (err) {
+                        error.value = `Error al actualizar estado: ${err.message}`;
+                        console.error(error.value);
+                    }
+                };
+
+                const deleteSupplier = async (supplier) => {
+                    if (!confirm(`¿Eliminar a ${supplier.name}?`)) return;
+                    
+                    try {
+                        const response = await fetch(`/api/suppliers/${supplier.id}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            suppliers.value = suppliers.value.filter(s => s.id !== supplier.id);
+                            console.log(`✅ Proveedor eliminado: ${supplier.name}`);
+                        }
+                    } catch (err) {
+                        error.value = `Error al eliminar: ${err.message}`;
+                        console.error(error.value);
+                    }
+                };
+
+                const clearFilters = () => {
+                    filters.value = { country: '', category: '' };
+                };
+
+                const retryConnection = () => {
+                    console.log('🔄 Reintentar conexión...');
+                    fetchSuppliers();
+                };
+
+                const filteredSuppliers = computed(() => {
+                    return suppliers.value.filter(s => {
+                        const matchCountry = !filters.value.country || s.country === filters.value.country;
+                        const matchCategory = !filters.value.category || s.category === filters.value.category;
+                        return matchCountry && matchCategory;
+                    });
+                });
+
+                onMounted(() => {
+                    console.log('🚀 App Vue 3 iniciada');
+                    fetchSuppliers();
+                });
+
+                return {
+                    suppliers,
+                    loading,
+                    error,
+                    filters,
+                    filteredSuppliers,
+                    toggleStatus,
+                    deleteSupplier,
+                    clearFilters,
+                    retryConnection
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
