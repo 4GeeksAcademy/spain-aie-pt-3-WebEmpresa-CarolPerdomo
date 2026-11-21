@@ -2,6 +2,7 @@ const navigation = [
   { label: "Resumen", href: "#resumen" },
   { label: "Operaciones", href: "#operaciones" },
   { label: "Prioridades", href: "#prioridades" },
+  { label: "Proveedores", href: "/suppliers" },
 ];
 
 export function Sidebar() {
