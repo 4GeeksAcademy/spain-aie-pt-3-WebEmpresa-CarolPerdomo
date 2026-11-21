@@ -1,12 +1,5 @@
-#!/usr/bin/env python3
-import sys
-import os
-
-# Agregar la carpeta raíz al path para imports absolutos
-sys.path.insert(0, os.path.dirname(__file__))
-
-from database import SuppliersDB
-from models import SupplierCreate, CountryEnum, CurrencyEnum, StatusEnum
+from .database import SuppliersDB
+from .models import SupplierCreate
 
 SUPPLIERS_SEED = [
     {
