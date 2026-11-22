@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("reset") === "success") {
+      const timer = window.setTimeout(() => setNotice("La contraseña se restableció. Ya puedes iniciar sesión."), 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,6 +61,8 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {notice && <p role="status" className="text-sm text-green-700">{notice}</p>}
+
         <div>
           <label className="mb-2 block text-sm font-medium">Correo electrónico</label>
           <input
@@ -63,6 +74,10 @@ export default function LoginPage() {
             placeholder="correo@empresa.com"
           />
         </div>
+
+        <Link href="/forgot-password" className="block text-right text-sm text-slate-700 underline">
+          ¿Olvidaste tu contraseña?
+        </Link>
 
         <div>
           <label className="mb-2 block text-sm font-medium">Contraseña</label>

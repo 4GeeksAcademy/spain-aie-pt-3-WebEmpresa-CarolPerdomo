@@ -1,6 +1,7 @@
 from tinydb import TinyDB, Query
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
+from threading import Lock
 from typing import Optional
 from .models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
 from .auth import AuthService
@@ -14,6 +15,8 @@ class SuppliersDB:
         self.suppliers_table = self.db.table('suppliers')
         self.users_table = self.db.table('users')
         self.profiles_table = self.db.table('profiles')
+        self.password_reset_tokens_table = self.db.table('password_reset_tokens')
+        self._password_reset_lock = Lock()
 
     # ============ User Operations ============
     
@@ -99,6 +102,49 @@ class SuppliersDB:
         
         self.users_table.update(updates, doc_ids=[user_id])
         return self.get_user_by_id(user_id)
+
+    def update_password(self, user_id: int, new_password: str) -> bool:
+        with self._password_reset_lock:
+            if not self.get_user_by_id(user_id):
+                return False
+            password_hash = AuthService.hash_password(new_password)
+            self.users_table.update({'password': password_hash}, doc_ids=[user_id])
+            Token = Query()
+            self.password_reset_tokens_table.update(
+                {'used': True},
+                (Token.user_id == user_id) & (Token.used == False),
+            )
+            return True
+
+    def create_password_reset_token(self, user_id: int, token_id: str, expires_at: int) -> None:
+        """Store only reset-token identifiers and invalidate prior outstanding links."""
+        with self._password_reset_lock:
+            Token = Query()
+            self.password_reset_tokens_table.update(
+                {'used': True},
+                (Token.user_id == user_id) & (Token.used == False),
+            )
+            self.password_reset_tokens_table.insert({
+                'user_id': user_id,
+                'jti': token_id,
+                'expires_at': expires_at,
+                'used': False,
+                'created_at': datetime.utcnow().isoformat(),
+            })
+
+    def consume_password_reset_token(self, user_id: int, token_id: str, expires_at: int) -> bool:
+        """Atomically mark a matching, unexpired reset identifier as used in this process."""
+        with self._password_reset_lock:
+            Token = Query()
+            record = self.password_reset_tokens_table.get(
+                (Token.user_id == user_id) & (Token.jti == token_id)
+            )
+            if not record or record.get('used') or record.get('expires_at', 0) <= int(datetime.now(timezone.utc).timestamp()):
+                return False
+            if record.get('expires_at') != expires_at:
+                return False
+            self.password_reset_tokens_table.update({'used': True}, doc_ids=[record.doc_id])
+            return True
     
     def delete_user(self, user_id: int) -> bool:
         """Delete user and their profile."""

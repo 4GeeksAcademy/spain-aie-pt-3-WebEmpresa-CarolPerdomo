@@ -24,6 +24,13 @@
 - `npm run build` from `uis/backoffice/` completes successfully with Next.js 16.3.4; the build includes `/suppliers` and the authenticated supplier API proxy routes.
 - The production build required network access to fetch the Google Fonts already imported by `app/layout.tsx`.
 
+## Password Recovery and Change
+
+- Added `POST /auth/forgot-password`, `/reset-password`, and authenticated `/change-password`. Reset links are signed JWTs with configurable 15–60 minute expiry, stored one-time identifiers, and invalidation after password changes. Forgot-password responds with the same 200 payload for known and unknown emails.
+- Added Resend delivery through `RESEND_API_KEY` and optional `RESEND_FROM_EMAIL`; reset URLs use `FRONTEND_BASE_URL`. Variable names and safe placeholders are documented in the root `.env.example` and API README.
+- Added backoffice pages at `/forgot-password`, `/reset-password`, and `/account/change-password`, plus the login recovery link. The authenticated change proxy forwards the HTTP-only session cookie as Bearer authorization.
+- Verification: API password recovery/email tests pass (4 tests), including expired/reused token rejection, password persistence, generic forgot response, authenticated password change, and a mocked Resend HTTP request containing the link. `npm run build` in `uis/backoffice/` completes and includes all three pages and API proxies. Actual inbox delivery still requires a registered test recipient and was not externally verified.
+
 ## Authentication System (New)
 
 **Location:** `/services/api/` - Complete REST API with authentication foundation.

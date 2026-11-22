@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -14,6 +15,7 @@ from nexova_suppliers.database import SuppliersDB
 from nexova_suppliers.dependencies import get_db
 from nexova_suppliers.models import RoleEnum
 from nexova_suppliers.routes import auth, profiles, suppliers, users
+from nexova_suppliers.auth import ALGORITHM, SECRET_KEY
 
 
 def build_app(db: SuppliersDB) -> FastAPI:
@@ -94,6 +96,44 @@ def api():
 
 def test_roles_are_limited_to_admin_and_user():
     assert {role.value for role in RoleEnum} == {"admin", "user"}
+
+
+def test_password_reset_and_change_password_are_secure_and_persistent(api, monkeypatch):
+    app, db = api
+    user = db.create_user("reset@example.com", "old-password")
+    sent = []
+    monkeypatch.setattr(auth, "send_password_reset_email", lambda address, url: sent.append((address, url)))
+
+    missing_status, missing_body = request(app, "POST", "/auth/forgot-password", body={"email": "unknown@example.com"})
+    existing_status, existing_body = request(app, "POST", "/auth/forgot-password", body={"email": "reset@example.com"})
+    assert missing_status == existing_status == 200
+    assert missing_body == existing_body
+    assert len(sent) == 1 and sent[0][0] == "reset@example.com"
+
+    from urllib.parse import parse_qs, urlparse
+    reset_token = parse_qs(urlparse(sent[0][1]).query)["token"][0]
+    assert AuthService.decode_password_reset_token(reset_token)["user_id"] == user["id"]
+    assert request(app, "POST", "/auth/reset-password", body={"token": "invalid", "new_password": "new-password"})[0] == 400
+
+    expired_token = AuthService.create_password_reset_token(user["id"], user["email"])[0]
+    expired_claims = AuthService.decode_password_reset_token(expired_token)
+    expired_claims["exp"] = datetime.now(timezone.utc) - timedelta(seconds=1)
+    import jwt
+    expired_token = jwt.encode(expired_claims, SECRET_KEY, algorithm=ALGORITHM)
+    assert request(app, "POST", "/auth/reset-password", body={"token": expired_token, "new_password": "new-password"})[0] == 400
+
+    session_token = AuthService.create_access_token(user["id"], user["email"])
+    assert request(app, "POST", "/auth/change-password", body={"current_password": "old-password", "new_password": "new-password"})[0] == 401
+    assert request(app, "POST", "/auth/change-password", token=session_token, body={"current_password": "wrong", "new_password": "new-password"})[0] == 400
+    assert request(app, "POST", "/auth/change-password", token=session_token, body={"current_password": "old-password", "new_password": "changed-password"})[0] == 200
+    assert AuthService.verify_password("changed-password", db.get_user_by_id(user["id"])["password"])
+    assert request(app, "POST", "/auth/reset-password", body={"token": reset_token, "new_password": "reset-password"})[0] == 400
+
+    request(app, "POST", "/auth/forgot-password", body={"email": "reset@example.com"})
+    reset_token = parse_qs(urlparse(sent[-1][1]).query)["token"][0]
+    assert request(app, "POST", "/auth/reset-password", body={"token": reset_token, "new_password": "reset-password"})[0] == 200
+    assert request(app, "POST", "/auth/reset-password", body={"token": reset_token, "new_password": "second-use-password"})[0] == 400
+    assert AuthService.verify_password("reset-password", db.get_user_by_id(user["id"])["password"])
 
 
 def test_auth_and_protected_routes_work_with_bearer_tokens(api):

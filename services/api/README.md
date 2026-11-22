@@ -78,6 +78,9 @@ The API will be available at: **http://localhost:8000**
 ### Authentication
 - `POST /auth/register` - Create new user account
 - `POST /auth/login` - Login and get JWT token
+- `POST /auth/forgot-password` - Send a single-use password reset link (always returns the same 200 response)
+- `POST /auth/reset-password` - Set a password using an unexpired, unused reset token
+- `POST /auth/change-password` - Change the authenticated user's password (Bearer token required)
 
 
 ## 🧪 Testing
@@ -187,6 +190,15 @@ services/api/
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `SECRET_KEY` | ✅ Yes | Secret key for JWT signing (min 32 chars recommended) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Session JWT lifetime; defaults to `1440` |
+| `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES` | No | Reset link lifetime from 15 to 60 minutes; defaults to `30` |
+| `RESEND_API_KEY` | For reset email | Resend API key. Keep it in local environment configuration, never source code. |
+| `RESEND_FROM_EMAIL` | No | Verified Resend sender, defaults to `Nexova <onboarding@resend.dev>` |
+| `FRONTEND_BASE_URL` | No | Backoffice origin used in reset links, defaults to `http://localhost:3001` |
+
+See the root [`.env.example`](../../.env.example) for variable names and safe placeholders. Configure a sender/domain accepted by your Resend account before sending production mail.
+
+`/auth/forgot-password` intentionally returns the same `200` message whether or not the email exists. Reset token identifiers are stored in TinyDB and each link can be used once. The reset email is sent through Resend's HTTPS API.
 
 **Example .env file:**
 ```bash
