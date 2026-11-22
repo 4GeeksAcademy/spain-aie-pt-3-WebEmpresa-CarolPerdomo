@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, validator, EmailStr
 from typing import Optional, List
 from enum import Enum
 from datetime import datetime
@@ -7,10 +7,11 @@ from datetime import datetime
 
 class RoleEnum(str, Enum):
     ADMIN = "admin"
-    MANAGER = "manager"
     USER = "user"
 
 class UserCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr
     password: str = Field(..., min_length=8)
 
@@ -25,6 +26,13 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    """Fields editable on a user account; profile details stay on Profile."""
+    model_config = ConfigDict(extra="forbid")
+
+    email: Optional[EmailStr] = None
+    role: Optional[RoleEnum] = None
 
 class ProfileCreate(BaseModel):
     name: Optional[str] = None

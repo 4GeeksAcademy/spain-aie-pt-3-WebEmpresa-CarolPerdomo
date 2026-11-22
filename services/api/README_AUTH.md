@@ -104,6 +104,12 @@ Same as registration response above.
 
 ### Users (Protected Routes - Requires Valid JWT Token)
 
+#### **POST /users/** ✅ Admin only
+Create a user account. The default role is `user`; admins may choose `admin` or `user`.
+
+#### **GET /users/** ✅ Admin only
+List user accounts without password hashes.
+
 #### **GET /users/me** ✅ Protected
 Get current authenticated user's information.
 
@@ -146,7 +152,7 @@ Authorization: Bearer <access_token>
 ---
 
 #### **PUT /users/{user_id}** ✅ Protected
-Update user information (name only).
+Update account fields. The account owner may change their email. Only an admin may change a role or update another user's account. Profile fields such as `name`, `phone`, and `address` belong to `/profiles/me`.
 
 **Headers:**
 ```
@@ -157,7 +163,7 @@ Content-Type: application/json
 **Body:**
 ```json
 {
-  "name": "Jane Doe"
+  "email": "jane@example.com"
 }
 ```
 
@@ -165,8 +171,12 @@ Content-Type: application/json
 
 **Errors:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Attempting to update another user
+- `403 Forbidden` - Updating another user's account or changing a role without admin permission
 - `404 Not Found` - User not found
+- `409 Conflict` - Email is already registered
+- `422 Unprocessable Entity` - Empty update, profile field, or invalid field value
+
+An administrator may update a role with a request such as `{"role":"user"}`. The only accepted roles are `admin` and `user`. To update profile information, use `PUT /profiles/me` with fields such as `{"name":"Jane Doe"}`.
 
 ---
 
@@ -298,7 +308,16 @@ Content-Type: application/json
 | **PUT** | **/profiles/me** | ✅ | Update current profile |
 | **PUT** | **/profiles/{user_id}** | ✅ | Update user profile |
 
-**Total Protected Routes: 8 out of 10 (80% protected)**
+### Suppliers (6 Protected Routes)
+
+- `POST /suppliers`
+- `GET /suppliers`
+- `GET /suppliers/{supplier_id}`
+- `PATCH /suppliers/{supplier_id}/rate`
+- `PATCH /suppliers/{supplier_id}/status`
+- `DELETE /suppliers/{supplier_id}`
+
+**Total: 16 protected API routes and 2 public auth routes.**
 
 ---
 
@@ -493,7 +512,11 @@ Las rutas protegidas utilizan autenticación Bearer.
 
 ### Creación administrativa de usuarios
 
-`POST /users/` requiere autenticación. Solo los administradores pueden crear usuarios con roles elevados, como `manager` o `admin`. Los usuarios sin permisos administrativos reciben una respuesta 403 al intentar asignar esos roles.
+`POST /users/` requiere autenticación y solo está disponible para administradores. El campo `role` acepta únicamente `admin` o `user`; si se omite, el usuario se crea con el rol `user`.
+
+### Actualización de cuenta y perfil
+
+`PUT /users/{user_id}` permite al propietario cambiar su `email`. Solo un administrador puede actualizar la cuenta de otra persona o cambiar `role`. Los campos `name`, `phone` y `address` pertenecen a Profile y se envían mediante `PUT /profiles/me`; el endpoint de usuario los rechaza.
 
 ### Configuración de tokens
 

@@ -4,9 +4,9 @@ Protected routes for user operations (read, update, delete).
 """
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
-from ..models import UserResponse, UserCreate, AdminUserCreate
+from ..models import UserResponse, UserCreate, UserUpdate, AdminUserCreate
 from ..database import SuppliersDB
-from ..dependencies import get_db, get_current_user, verify_owns_resource
+from ..dependencies import get_db, get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -41,6 +41,20 @@ def create_user(
         role=new_user.get('role', 'user'),
         created_at=new_user['created_at']
     )
+
+@router.get("/", response_model=List[UserResponse])
+def list_users(
+    db: SuppliersDB = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """List account details without password hashes; admins only."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can list users"
+        )
+
+    return db.get_all_users()
 
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(
@@ -102,15 +116,17 @@ def get_user(
 @router.put("/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,
-    name: str = None,
+    user_update: UserUpdate,
     user_payload: dict = Depends(get_current_user),
     db: SuppliersDB = Depends(get_db)
 ):
     """
-    Update user information (name only).
-    Users can only update their own profile.
+    Update account fields. Owners can update their email; admins can also
+    update another user's email and change roles. Profile fields are managed
+    through /profiles.
     """
-    if user_payload['user_id'] != user_id:
+    is_admin = user_payload.get('role') == 'admin'
+    if user_payload['user_id'] != user_id and not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to update this user"
@@ -122,20 +138,34 @@ def update_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
-    updates = {}
-    if name is not None:
-        updates['name'] = name
-    
-    if updates:
-        updated_user = db.update_user(user_id, **updates)
-    else:
-        updated_user = user
+
+    updates = user_update.model_dump(exclude_unset=True)
+    if not updates or any(value is None for value in updates.values()):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide a non-null email or role to update"
+        )
+
+    if 'role' in updates and not is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can change user roles"
+        )
+
+    if 'role' in updates:
+        updates['role'] = updates['role'].value
+
+    updated_user = db.update_user(user_id, **updates)
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email is already registered"
+        )
     
     return UserResponse(
         id=updated_user['id'],
         email=updated_user['email'],
-     role=updated_user.get('role', 'user'),
+        role=updated_user.get('role', 'user'),
         created_at=updated_user['created_at']
     )
 

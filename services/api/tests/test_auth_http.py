@@ -1,0 +1,211 @@
+import asyncio
+import json
+import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+os.environ.setdefault("SECRET_KEY", "test-only-secret-key-for-auth-http-tests")
+
+from fastapi import FastAPI
+import pytest
+
+from nexova_suppliers.auth import AuthService
+from nexova_suppliers.database import SuppliersDB
+from nexova_suppliers.dependencies import get_db
+from nexova_suppliers.models import RoleEnum
+from nexova_suppliers.routes import auth, profiles, suppliers, users
+
+
+def build_app(db: SuppliersDB) -> FastAPI:
+    app = FastAPI()
+    app.dependency_overrides[get_db] = lambda: db
+    app.include_router(auth.router)
+    app.include_router(users.router)
+    app.include_router(profiles.router)
+    app.include_router(suppliers.router)
+    return app
+
+
+async def asgi_request(app, method, path, token=None, body=None):
+    request_body = json.dumps(body).encode("utf-8") if body is not None else b""
+    headers = [(b"host", b"testserver")]
+    if body is not None:
+        headers.extend([
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(request_body)).encode("ascii")),
+        ])
+    if token:
+        headers.append((b"authorization", f"Bearer {token}".encode("ascii")))
+
+    sent_request = False
+    response_status = None
+    response_body = bytearray()
+
+    async def receive():
+        nonlocal sent_request
+        if not sent_request:
+            sent_request = True
+            return {"type": "http.request", "body": request_body, "more_body": False}
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        nonlocal response_status
+        if message["type"] == "http.response.start":
+            response_status = message["status"]
+        elif message["type"] == "http.response.body":
+            response_body.extend(message.get("body", b""))
+
+    raw_path = path.encode("ascii")
+    await app(
+        {
+            "type": "http",
+            "asgi": {"version": "3.0", "spec_version": "2.3"},
+            "http_version": "1.1",
+            "method": method,
+            "scheme": "http",
+            "path": path,
+            "raw_path": raw_path,
+            "query_string": b"",
+            "root_path": "",
+            "headers": headers,
+            "client": ("127.0.0.1", 12345),
+            "server": ("127.0.0.1", 80),
+        },
+        receive,
+        send,
+    )
+    parsed_body = json.loads(response_body) if response_body else None
+    return response_status, parsed_body
+
+
+def request(app, method, path, token=None, body=None):
+    return asyncio.run(asgi_request(app, method, path, token=token, body=body))
+
+
+@pytest.fixture
+def api():
+    with TemporaryDirectory(dir=Path(__file__).parent) as temp_dir:
+        db = SuppliersDB(Path(temp_dir) / "api.json")
+        try:
+            yield build_app(db), db
+        finally:
+            db.close()
+
+
+def test_roles_are_limited_to_admin_and_user():
+    assert {role.value for role in RoleEnum} == {"admin", "user"}
+
+
+def test_auth_and_protected_routes_work_with_bearer_tokens(api):
+    app, db = api
+    owner = db.create_user("owner@example.com", "secure-password")
+    other = db.create_user("other@example.com", "other-password")
+    owner_record = db.get_user_by_id(owner["id"])
+    assert owner_record["password"] != "secure-password"
+    assert AuthService.verify_password("secure-password", owner_record["password"])
+
+    protected_requests = [
+        ("POST", "/users/", {"email": "new@example.com", "password": "password123"}),
+        ("GET", "/users/", None),
+        ("GET", "/users/me", None),
+        ("GET", f"/users/{owner['id']}", None),
+        ("PUT", f"/users/{owner['id']}", {"email": "changed@example.com"}),
+        ("DELETE", f"/users/{owner['id']}", None),
+        ("GET", "/profiles/me", None),
+        ("GET", f"/profiles/{owner['id']}", None),
+        ("PUT", "/profiles/me", {"name": "Profile Name"}),
+        ("PUT", f"/profiles/{owner['id']}", {"phone": "555-0100"}),
+        ("POST", "/suppliers", {
+            "name": "Example Supplier", "country": "Spain", "categories": ["job_boards"],
+            "monthly_rate": 1, "currency": "EUR", "status": "active",
+        }),
+        ("GET", "/suppliers", None),
+        ("GET", "/suppliers/1", None),
+        ("PATCH", "/suppliers/1/rate", {"monthly_rate": 2}),
+        ("PATCH", "/suppliers/1/status", {"status": "suspended"}),
+        ("DELETE", "/suppliers/1", None),
+    ]
+    for method, path, body in protected_requests:
+        status_code, _ = request(app, method, path, body=body)
+        assert status_code == 401, f"{method} {path} without token returned {status_code}"
+
+    status_code, login = request(
+        app, "POST", "/auth/login",
+        body={"email": "owner@example.com", "password": "secure-password"},
+    )
+    assert status_code == 200
+    owner_token = login["access_token"]
+    assert AuthService.decode_token(owner_token)["user_id"] == owner["id"]
+    assert request(
+        app, "POST", "/auth/login",
+        body={"email": "owner@example.com", "password": "wrong-password"},
+    )[0] == 401
+
+    status_code, current_user = request(app, "GET", "/users/me", token=owner_token)
+    assert status_code == 200
+    assert current_user["id"] == owner["id"]
+    assert "password" not in current_user
+    assert request(app, "GET", f"/users/{owner['id']}", token=owner_token)[0] == 200
+
+    status_code, updated_profile = request(
+        app, "PUT", "/profiles/me", token=owner_token,
+        body={"name": "Example Profile", "phone": "555-0100", "address": "Example Address"},
+    )
+    assert status_code == 200
+    assert updated_profile["name"] == "Example Profile"
+    assert updated_profile["phone"] == "555-0100"
+    assert updated_profile["address"] == "Example Address"
+    owner_record = db.get_user_by_id(owner["id"])
+    assert all(field not in owner_record for field in ("name", "phone", "address"))
+
+    assert request(app, "GET", "/suppliers", token=owner_token)[0] == 200
+    assert request(app, "GET", f"/profiles/{other['id']}", token=owner_token)[0] == 403
+    assert request(app, "PUT", f"/profiles/{other['id']}", token=owner_token, body={"name": "Other"})[0] == 403
+    assert request(app, "GET", f"/users/{other['id']}", token=owner_token)[0] == 403
+    assert request(app, "PUT", f"/users/{other['id']}", token=owner_token, body={"email": "new-other@example.com"})[0] == 403
+    assert request(app, "PUT", f"/users/{owner['id']}", token=owner_token, body={"role": "manager"})[0] == 422
+    assert request(app, "GET", "/users/", token=owner_token)[0] == 403
+
+    status_code, registered_user = request(
+        app, "POST", "/auth/register",
+        body={"email": "registered@example.com", "password": "password123"},
+    )
+    assert status_code == 200
+    assert registered_user["user"]["role"] == "user"
+    assert AuthService.decode_token(registered_user["access_token"])["user_id"] == registered_user["user"]["id"]
+    assert db.get_profile_by_user_id(registered_user["user"]["id"])["user_id"] == registered_user["user"]["id"]
+
+    admin = db.create_user("admin@example.com", "admin-password", role="admin")
+    admin_token = AuthService.create_access_token(admin["id"], admin["email"], admin["role"])
+    status_code, listed_users = request(app, "GET", "/users/", token=admin_token)
+    assert status_code == 200
+    assert len(listed_users) == 4
+    assert all("password" not in user for user in listed_users)
+
+    status_code, created_user = request(
+        app, "POST", "/users/", token=admin_token,
+        body={"email": "created@example.com", "password": "password123"},
+    )
+    assert status_code == 201
+    assert created_user["role"] == "user"
+    assert db.get_profile_by_user_id(created_user["id"])["user_id"] == created_user["id"]
+
+    status_code, created_login = request(
+        app, "POST", "/auth/login",
+        body={"email": "created@example.com", "password": "password123"},
+    )
+    assert status_code == 200
+    created_token = created_login["access_token"]
+    assert request(app, "GET", f"/users/{created_user['id']}", token=created_token)[0] == 200
+    assert request(app, "DELETE", f"/users/{created_user['id']}", token=created_token)[0] == 204
+    assert db.get_user_by_id(created_user["id"]) is None
+    assert db.get_profile_by_user_id(created_user["id"]) is None
+
+    assert request(
+        app, "POST", "/users/", token=admin_token,
+        body={"email": "manager@example.com", "password": "password123", "role": "manager"},
+    )[0] == 422
+    assert request(
+        app, "POST", "/auth/register",
+        body={"email": "registration@example.com", "password": "password123", "role": "admin"},
+    )[0] == 422

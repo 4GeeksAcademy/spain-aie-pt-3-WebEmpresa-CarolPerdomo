@@ -49,7 +49,7 @@ def root():
             "login": "POST /auth/login"
         },
         "protected_routes": {
-            "users": ["GET /users/me", "GET /users/{user_id}", "PUT /users/{user_id}", "DELETE /users/{user_id}"],
+            "users": ["POST /users/", "GET /users/ (admin)", "GET /users/me", "GET /users/{user_id}", "PUT /users/{user_id}", "DELETE /users/{user_id}"],
             "profiles": ["GET /profiles/me", "GET /profiles/{user_id}", "PUT /profiles/me", "PUT /profiles/{user_id}"]
         }
     }

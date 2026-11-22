@@ -1,6 +1,7 @@
 from tinydb import TinyDB, Query
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 from .models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
 from .auth import AuthService
 
@@ -83,13 +84,18 @@ class SuppliersDB:
         users_with_id = self._add_id_to_result(users)
         return [{k: v for k, v in u.items() if k != 'password'} for u in users_with_id]
     
-    def update_user(self, user_id: int, **kwargs) -> dict:
-        """Update user fields (excluding password)."""
+    def update_user(self, user_id: int, **kwargs) -> Optional[dict]:
+        """Update email or role, preserving unique email addresses."""
         allowed_fields = {'email', 'role'}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         
         if not updates:
             return self.get_user_by_id(user_id)
+
+        if 'email' in updates:
+            existing_user = self.get_user_by_email(updates['email'])
+            if existing_user and existing_user['id'] != user_id:
+                return None
         
         self.users_table.update(updates, doc_ids=[user_id])
         return self.get_user_by_id(user_id)

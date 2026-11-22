@@ -18,7 +18,7 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
     - **email**: Valid email address (must be unique)
     - **password**: Minimum 8 characters
     - **name**: Optional; if not provided, a default name is generated
-    - **role**: Optional; defaults to 'user'. Accepts: admin, manager, user
+    - Public registration always creates the account with the 'user' role.
     
     Returns access token and user info.
     """

@@ -49,12 +49,14 @@ The API will be available at: **http://localhost:8000**
 - **ReDoc** (Alternative): http://localhost:8000/redoc
 - **Full API Guide**: See [README_AUTH.md](./README_AUTH.md)
 
-## 🔑 Protected Routes (8 Total)
+## 🔑 Protected API Routes (16 Total)
 
 ### Users
+- `POST /users/` - Create a user (admin only; defaults to role `user`)
+- `GET /users/` - List users without password hashes (admin only)
 - `GET /users/me` - Get current user
 - `GET /users/{user_id}` - Get specific user (own data only)
-- `PUT /users/{user_id}` - Update user (own data only)
+- `PUT /users/{user_id}` - Update own email; admins may update another account and change roles
 - `DELETE /users/{user_id}` - Delete user (own data only)
 
 ### Profiles
@@ -63,19 +65,20 @@ The API will be available at: **http://localhost:8000**
 - `PUT /profiles/me` - Update current profile
 - `PUT /profiles/{user_id}` - Update user profile (own only)
 
+### Suppliers
+- `POST /suppliers` - Create supplier
+- `GET /suppliers` - List suppliers
+- `GET /suppliers/{id}` - Get supplier details
+- `PATCH /suppliers/{id}/rate` - Update supplier rate
+- `PATCH /suppliers/{id}/status` - Update supplier status
+- `DELETE /suppliers/{id}` - Delete supplier
+
 ## 🔓 Public Routes (No Auth Required)
 
 ### Authentication
 - `POST /auth/register` - Create new user account
 - `POST /auth/login` - Login and get JWT token
 
-### Suppliers (Full CRUD)
-- `GET /suppliers` - List all suppliers
-- `POST /suppliers` - Create supplier (requires auth)
-- `GET /suppliers/{id}` - Get supplier details
-- `PATCH /suppliers/{id}/rate` - Update supplier rate (requires auth)
-- `PATCH /suppliers/{id}/status` - Update supplier status (requires auth)
-- `DELETE /suppliers/{id}` - Delete supplier (requires auth)
 
 ## 🧪 Testing
 

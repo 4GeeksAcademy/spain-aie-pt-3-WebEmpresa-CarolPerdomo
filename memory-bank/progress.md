@@ -14,6 +14,8 @@
 - `uis/website/` is an independent Next.js public website with a responsive corporate homepage, reusable header/service/section/footer components, organization JSON-LD, company services, and contact details.
 - `uis/backoffice/` is a separate Next.js app and layout with visible company KPIs, department signals, department filtering, text search, and a computed support-SLA gap. It labels its figures as briefing reference data, not live metrics.
 - `uis/backoffice/app/suppliers/page.tsx` now provides the supplier directory with country/category filters, supplier creation, rate edits, and status changes. Its Next.js API routes forward the login's HTTP-only `access_token` cookie as a Bearer token; the API listing adds TinyDB document IDs to every supplier.
+- `PUT /users/{user_id}` now updates account email and role with ownership/admin checks. Profile fields remain under `/profiles`; duplicate emails return 409. Added persistence and permission coverage in `services/api/tests/test_user_updates.py`.
+- User roles are restricted to `admin` and `user`. Added admin-only `GET /users/` with password-free results and ASGI-level auth/CRUD tests for login, 401/403 behavior, profiles, user CRUD, and protected supplier access.
 - Retired the duplicate supplier screens under `uis/application` and the root HTML files. The former `/login/suppliers` route redirects to `/suppliers`.
 - Both frontend apps have per-app READMEs and run/build/lint scripts.
 
@@ -136,6 +138,11 @@
 3. Add error handling and success states that work with real API responses
 4. Test end-to-end flow: register → auto-profile created → update profile → fetch profile
 5. Measure PageSpeed Insights after deployment. Current requirement: >= 80, target: > 90.
+
+## User Update Verification
+
+- `pytest -p no:cacheprovider tests/test_user_updates.py -q` passes (4 tests), including email persistence after reopening TinyDB, admin-only role updates, and rejection of Profile fields on User updates.
+- `pytest -p no:cacheprovider tests -q` passes (6 tests), including real Bearer-authenticated ASGI requests across users, profiles, and suppliers.
 
 ## Update Policy
 
