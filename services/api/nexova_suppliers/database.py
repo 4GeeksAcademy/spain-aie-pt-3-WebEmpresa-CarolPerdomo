@@ -130,7 +130,7 @@ class SuppliersDB:
         return new_supplier
 
     def get_all_suppliers(self, country: str = None, category: str = None) -> list:
-        results = self.suppliers_table.all()
+        results = self._add_id_to_result(self.suppliers_table.all())
         
         if country:
             results = [s for s in results if s.get('country') == country]

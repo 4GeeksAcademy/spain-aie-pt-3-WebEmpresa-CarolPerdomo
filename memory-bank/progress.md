@@ -13,7 +13,14 @@
 - Root TypeScript collection/search/transformation/validation utilities and npm typecheck/build scripts are present under `src/`.
 - `uis/website/` is an independent Next.js public website with a responsive corporate homepage, reusable header/service/section/footer components, organization JSON-LD, company services, and contact details.
 - `uis/backoffice/` is a separate Next.js app and layout with visible company KPIs, department signals, department filtering, text search, and a computed support-SLA gap. It labels its figures as briefing reference data, not live metrics.
+- `uis/backoffice/app/suppliers/page.tsx` now provides the supplier directory with country/category filters, supplier creation, rate edits, and status changes. Its Next.js API routes forward the login's HTTP-only `access_token` cookie as a Bearer token; the API listing adds TinyDB document IDs to every supplier.
+- Retired the duplicate supplier screens under `uis/application` and the root HTML files. The former `/login/suppliers` route redirects to `/suppliers`.
 - Both frontend apps have per-app READMEs and run/build/lint scripts.
+
+## Supplier Backoffice Verification
+
+- `npm run build` from `uis/backoffice/` completes successfully with Next.js 16.3.4; the build includes `/suppliers` and the authenticated supplier API proxy routes.
+- The production build required network access to fetch the Google Fonts already imported by `app/layout.tsx`.
 
 ## Authentication System (New)
 
