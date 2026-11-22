@@ -278,6 +278,10 @@ Part of Nexova Solutions projects. See root LICENSE file.
 
 **Questions?** Check the [detailed API documentation](./README_AUTH.md) or the interactive docs at http://localhost:8000/docs
 
+## Supplier seed data
+
+From `services/api`, run `uv run seed` to load the supplier examples into TinyDB. The command adds only names that are not already present, prints the inserted and total record counts, and can be safely rerun. The seed database is `services/api/data/suppliers.json` when run from this directory.
+
 
 ## API actualizada - Noviembre 2026
 

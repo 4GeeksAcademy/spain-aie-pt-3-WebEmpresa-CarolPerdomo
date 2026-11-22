@@ -23,6 +23,11 @@ wheels/
 .installed.cfg
 *.egg
 
+# Keep the supplier API proxy as tracked backoffice source despite the generic lib/ rule.
+!uis/backoffice/lib/
+uis/backoffice/lib/*
+!uis/backoffice/lib/supplier-proxy.ts
+
 # Virtual environments
 venv/
 ENV/

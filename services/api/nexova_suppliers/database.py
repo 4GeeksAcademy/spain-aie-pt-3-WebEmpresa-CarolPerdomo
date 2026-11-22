@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from threading import Lock
 from typing import Optional
 from .models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
-from .auth import AuthService
 
 DB_PATH = Path("data") / "suppliers.json"
 DB_PATH.parent.mkdir(exist_ok=True)
@@ -34,6 +33,8 @@ class SuppliersDB:
         return result_or_list
     
     def create_user(self, email: str, password: str, role: str = "user"):
+        from .auth import AuthService
+
         # Check if email already exists
         User = Query()
         if self.users_table.search(User.email == email):
@@ -104,6 +105,8 @@ class SuppliersDB:
         return self.get_user_by_id(user_id)
 
     def update_password(self, user_id: int, new_password: str) -> bool:
+        from .auth import AuthService
+
         with self._password_reset_lock:
             if not self.get_user_by_id(user_id):
                 return False
@@ -176,7 +179,7 @@ class SuppliersDB:
 
     def create_supplier(self, supplier_data: SupplierCreate) -> dict:
         new_supplier = supplier_data.model_dump()
-        new_supplier['updated_at'] = datetime.now().isoformat()
+        new_supplier['updated_at'] = datetime.now(timezone.utc).isoformat()
         doc_id = self.suppliers_table.insert(new_supplier)
         new_supplier['id'] = doc_id
         return new_supplier
@@ -193,14 +196,17 @@ class SuppliersDB:
         return results
 
     def get_supplier_by_id(self, supplier_id: int) -> dict:
-        return self.suppliers_table.get(doc_id=supplier_id)
+        return self._add_id_to_result(self.suppliers_table.get(doc_id=supplier_id))
 
     def update_rate(self, supplier_id: int, new_rate: float) -> dict:
         supplier = self.get_supplier_by_id(supplier_id)
         if not supplier:
             return None
         
-        self.suppliers_table.update({'monthly_rate': new_rate, 'updated_at': datetime.now().isoformat()}, doc_ids=[supplier_id])
+        self.suppliers_table.update(
+            {'monthly_rate': new_rate, 'updated_at': datetime.now(timezone.utc).isoformat()},
+            doc_ids=[supplier_id],
+        )
         return self.get_supplier_by_id(supplier_id)
 
     def update_status(self, supplier_id: int, new_status: str) -> dict:

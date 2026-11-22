@@ -102,14 +102,16 @@ class CategoryEnum(str, Enum):
     IT_AND_SOFTWARE = "it_and_software_licenses"
 
 class SupplierBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1)
     country: CountryEnum
-    categories: List[CategoryEnum] = Field(..., min_items=1)
-    monthly_rate: float = Field(..., gt=0)
+    categories: List[CategoryEnum] = Field(..., min_length=1)
+    monthly_rate: float = Field(..., gt=0, allow_inf_nan=False)
     currency: CurrencyEnum
     status: StatusEnum
     contract_renewal_date: Optional[str] = None
-    contact_email: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
     notes: Optional[str] = None
 
     @validator('contract_renewal_date')
@@ -142,8 +144,17 @@ class Supplier(SupplierBase):
         from_attributes = True
 
 class SupplierUpdate(BaseModel):
-    monthly_rate: Optional[float] = Field(None, gt=0)
+    model_config = ConfigDict(extra="forbid")
+
+    monthly_rate: Optional[float] = Field(None, gt=0, allow_inf_nan=False)
     status: Optional[StatusEnum] = None
 
-    class Config:
-        from_attributes = True
+class SupplierRateUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    monthly_rate: float = Field(..., gt=0, allow_inf_nan=False)
+
+class SupplierStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: StatusEnum
