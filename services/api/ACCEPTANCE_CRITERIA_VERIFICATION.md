@@ -46,8 +46,8 @@ The Nexova API authentication system has been successfully implemented with **co
 | email | User | string |
 | role | User | enum |
 | phone | Profile | string |
-| location | Profile | string |
-| bio | Profile | string |
+| address | Profile | string |
+| name | Profile | string |
 | specialization | Profile | string |
 | experience_years | Profile | integer |
 
@@ -463,3 +463,27 @@ The Nexova API authentication system is **production-ready** with:
 **Generated:** 2026-11-16  
 **Commit:** fdfe7ab  
 **Last Verification:** 2026-11-16 17:23:43 UTC
+
+
+## Verificación actualizada - Noviembre 2026
+
+### Criterios revisados
+
+- [x] Separación de los modelos `User` y `Profile`.
+- [x] Los campos `name`, `phone` y `address` pertenecen a `Profile`.
+- [x] Creación automática del perfil al crear un usuario.
+- [x] Registro público con rol predeterminado `user`.
+- [x] Creación administrativa de usuarios mediante `POST /users/`.
+- [x] Restricción de asignación de roles elevados a administradores autenticados.
+- [x] Expiración JWT configurable mediante `ACCESS_TOKEN_EXPIRE_MINUTES`.
+- [x] Eliminación de referencias antiguas `bio` y `location` del código Python revisado.
+
+### Resultado de pruebas
+
+Última ejecución local de pytest:
+
+- Pruebas aprobadas: 4
+- Pruebas fallidas: 0
+- Advertencias: 15
+
+Las advertencias no provocaron fallos en esa ejecución y quedan pendientes de revisión.

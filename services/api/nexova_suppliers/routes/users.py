@@ -4,11 +4,43 @@ Protected routes for user operations (read, update, delete).
 """
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
-from ..models import UserResponse
+from ..models import UserResponse, UserCreate, AdminUserCreate
 from ..database import SuppliersDB
 from ..dependencies import get_db, get_current_user, verify_owns_resource
 
 router = APIRouter(prefix="/users", tags=["users"])
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(
+    user_data: AdminUserCreate,
+    db: SuppliersDB = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a user. Only administrators can create users."""
+
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can create users"
+    )
+
+    new_user = db.create_user(
+        email=user_data.email,
+        password=user_data.password,
+        role=user_data.role.value
+    )
+
+    if not new_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    return UserResponse(
+        id=new_user['id'],
+        email=new_user['email'],
+        role=new_user.get('role', 'user'),
+        created_at=new_user['created_at']
+    )
 
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(
@@ -30,10 +62,10 @@ def get_current_user_info(
     return UserResponse(
         id=user['id'],
         email=user['email'],
-        name=user.get('name'),
         role=user.get('role', 'user'),
         created_at=user['created_at']
-    )
+
+)
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
@@ -63,11 +95,10 @@ def get_user(
     return UserResponse(
         id=user['id'],
         email=user['email'],
-        name=user.get('name'),
         role=user.get('role', 'user'),
         created_at=user['created_at']
-    )
 
+)
 @router.put("/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,
@@ -104,8 +135,7 @@ def update_user(
     return UserResponse(
         id=updated_user['id'],
         email=updated_user['email'],
-        name=updated_user.get('name'),
-        role=updated_user.get('role', 'user'),
+     role=updated_user.get('role', 'user'),
         created_at=updated_user['created_at']
     )
 

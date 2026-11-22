@@ -130,12 +130,12 @@ def demo_update_profile(token):
     print_info("Adding detailed professional information...")
     
     profile_data = {
-        "bio": "Experienced software engineer passionate about AI and distributed systems",
-        "phone": "+34-666-123456",
-        "location": "Valencia, Spain",
-        "specialization": "Full Stack Development",
-        "experience_years": 5
-    }
+    "name": "Experienced software engineer passionate about AI and distributed systems",
+    "phone": "+34-666-123456",
+    "address": "Valencia, Spain",
+    "specialization": "Full Stack Development",
+    "experience_years": 5
+}
     
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.put(f"{BASE_URL}/profiles/me", json=profile_data, headers=headers)

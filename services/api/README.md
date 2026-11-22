@@ -262,3 +262,48 @@ Part of Nexova Solutions projects. See root LICENSE file.
 ---
 
 **Questions?** Check the [detailed API documentation](./README_AUTH.md) or the interactive docs at http://localhost:8000/docs
+
+
+## API actualizada - Noviembre 2026
+
+### Modelos de datos
+
+Los datos de autenticación se almacenan en `User`:
+- `id`
+- `email`
+- `password` (hash)
+- `role`
+- `created_at`
+
+Los datos personales y profesionales se almacenan en `Profile`:
+- `id`
+- `user_id`
+- `name`
+- `phone`
+- `address`
+- `specialization`
+- `experience_years`
+- `created_at`
+- `updated_at`
+
+Cada usuario recibe automáticamente un perfil al crearse.
+
+### Autenticación y usuarios
+
+- `POST /auth/register`: registro público con email y contraseña. El rol inicial es `user`.
+- `POST /auth/login`: autenticación y obtención de token JWT.
+- `POST /users/`: creación de usuarios por administradores autenticados. Solo un administrador puede asignar roles elevados.
+- `GET /users/me`: consulta del usuario autenticado.
+
+### Perfiles
+
+Los perfiles utilizan los campos `name`, `phone`, `address`, `specialization` y `experience_years`. La modificación del perfil requiere autenticación.
+
+### Configuración JWT
+
+- `SECRET_KEY`: obligatoria.
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: duración del token en minutos. Valor predeterminado: `1440` (24 horas).
+
+### Pruebas
+
+Última ejecución registrada: `4 passed`. Se registraron 15 warnings de pytest, pendientes de revisión.

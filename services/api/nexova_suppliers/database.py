@@ -29,8 +29,7 @@ class SuppliersDB:
             return result_dict
         return result_or_list
     
-    def create_user(self, email: str, password: str, name: str = None, role: str = "user") -> dict:
-        """Create a user and auto-create their profile."""
+    def create_user(self, email: str, password: str, role: str = "user"):
         # Check if email already exists
         User = Query()
         if self.users_table.search(User.email == email):
@@ -40,7 +39,6 @@ class SuppliersDB:
         new_user = {
             'email': email,
             'password': hashed_password,
-            'name': name or f"User_{email.split('@')[0]}",
             'role': role,
             'created_at': datetime.utcnow().isoformat()
         }
@@ -56,9 +54,9 @@ class SuppliersDB:
         """Create a default profile for a user."""
         new_profile = {
             'user_id': user_id,
-            'bio': None,
+            'name': None,
             'phone': None,
-            'location': None,
+            'address': None,
             'specialization': None,
             'experience_years': None,
             'created_at': datetime.utcnow().isoformat(),
@@ -87,7 +85,7 @@ class SuppliersDB:
     
     def update_user(self, user_id: int, **kwargs) -> dict:
         """Update user fields (excluding password)."""
-        allowed_fields = {'name', 'email', 'role'}
+        allowed_fields = {'email', 'role'}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         
         if not updates:
@@ -114,7 +112,7 @@ class SuppliersDB:
     
     def update_profile(self, user_id: int, **kwargs) -> dict:
         """Update user's profile."""
-        allowed_fields = {'bio', 'phone', 'location', 'specialization', 'experience_years'}
+        allowed_fields = {'name', 'phone', 'address', 'specialization', 'experience_years'}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         updates['updated_at'] = datetime.utcnow().isoformat()
         

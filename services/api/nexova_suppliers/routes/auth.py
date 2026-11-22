@@ -24,11 +24,9 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
     """
     # Create user (this also creates their Profile automatically)
     new_user = db.create_user(
-        email=user_data.email,
-        password=user_data.password,
-        name=user_data.name,
-        role=user_data.role
-    )
+    email=user_data.email,
+    password=user_data.password
+)
     
     if not new_user:
         raise HTTPException(
@@ -45,7 +43,6 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
         user=UserResponse(
             id=new_user['id'],
             email=new_user['email'],
-            name=new_user['name'],
             role=new_user['role'],
             created_at=new_user['created_at']
         )
@@ -73,10 +70,9 @@ def login(credentials: LoginRequest, db: SuppliersDB = Depends(get_db)):
         access_token=access_token,
         token_type="bearer",
         user=UserResponse(
-            id=user['id'],
-            email=user['email'],
-            name=user.get('name'),
-            role=user.get('role', 'user'),
-            created_at=user['created_at']
-        )
+        id=user['id'],
+        email=user['email'],
+        role=user.get('role', 'user'),
+        created_at=user['created_at']
+)
     )

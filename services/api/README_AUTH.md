@@ -202,9 +202,9 @@ Authorization: Bearer <access_token>
 {
   "id": 1,
   "user_id": 1,
-  "bio": "I am a talented professional...",
+  "name": "I am a talented professional...",
   "phone": "+34-666-123456",
-  "location": "Valencia, Spain",
+  "address": "Valencia, Spain",
   "specialization": "Full Stack Development",
   "experience_years": 5,
   "created_at": "2024-11-16T10:00:00",
@@ -247,9 +247,9 @@ Content-Type: application/json
 **Body:**
 ```json
 {
-  "bio": "Updated bio...",
+  "name": "Updated name...",
   "phone": "+34-666-999888",
-  "location": "Madrid, Spain",
+  "address": "Madrid, Spain",
   "specialization": "AI Engineering",
   "experience_years": 7
 }
@@ -379,9 +379,9 @@ curl -X PUT http://localhost:8000/profiles/me \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "bio": "I am a software engineer",
+    "name": "I am a software engineer",
     "phone": "+34-666-123456",
-    "location": "Valencia",
+    "address": "Valencia",
     "specialization": "Backend Development",
     "experience_years": 5
   }'
@@ -473,3 +473,38 @@ This authentication system:
 ---
 
 For questions or issues, refer to the main Nexova project documentation.
+
+
+## Actualización de autenticación - Noviembre 2026
+
+### Registro público
+
+`POST /auth/register` recibe:
+- `email`
+- `password` (mínimo 8 caracteres)
+
+Los registros públicos crean usuarios con rol `user`. El cliente no puede elegir un rol elevado durante el registro.
+
+### Inicio de sesión
+
+`POST /auth/login` recibe las credenciales y devuelve un token de acceso JWT.
+
+Las rutas protegidas utilizan autenticación Bearer.
+
+### Creación administrativa de usuarios
+
+`POST /users/` requiere autenticación. Solo los administradores pueden crear usuarios con roles elevados, como `manager` o `admin`. Los usuarios sin permisos administrativos reciben una respuesta 403 al intentar asignar esos roles.
+
+### Configuración de tokens
+
+- `SECRET_KEY`: variable obligatoria para firmar los tokens.
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: duración configurable en minutos; predeterminado `1440`.
+
+Ejemplo de configuración en PowerShell:
+
+```powershell
+$env:SECRET_KEY = "TU_CLAVE_SECRETA"
+$env:ACCESS_TOKEN_EXPIRE_MINUTES = "30"
+```
+
+No publiques claves secretas ni las incluyas en el repositorio.

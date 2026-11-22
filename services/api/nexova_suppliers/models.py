@@ -13,36 +13,37 @@ class RoleEnum(str, Enum):
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
-    name: Optional[str] = None
+
+class AdminUserCreate(UserCreate):
     role: RoleEnum = RoleEnum.USER
 
 class UserResponse(BaseModel):
     id: int
     email: str
-    name: Optional[str] = None
     role: str
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 class ProfileCreate(BaseModel):
-    bio: Optional[str] = None
+    name: Optional[str] = None
     phone: Optional[str] = None
-    location: Optional[str] = None
+    address: Optional[str] = None
     specialization: Optional[str] = None
     experience_years: Optional[int] = Field(None, ge=0)
 
 class ProfileResponse(BaseModel):
     id: int
     user_id: int
-    bio: Optional[str] = None
+    name: Optional[str] = None
     phone: Optional[str] = None
-    location: Optional[str] = None
+    address: Optional[str] = None
     specialization: Optional[str] = None
     experience_years: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+
     
     class Config:
         from_attributes = True

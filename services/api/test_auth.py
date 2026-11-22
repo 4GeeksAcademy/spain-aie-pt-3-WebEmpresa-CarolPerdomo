@@ -21,11 +21,11 @@ def test_secret_key_mandatory():
     
     # Clear module cache
     for mod in list(sys.modules.keys()):
-        if 'services.api' in mod:
+        if 'nexova_suppliers' in mod:
             del sys.modules[mod]
     
     try:
-        import services.api.auth
+        import nexova_suppliers.auth
         print("❌ FAILED - App should require SECRET_KEY")
         return False
     except ValueError as e:
@@ -42,8 +42,8 @@ def test_routes_protected():
     """Test that protected routes exist and require auth."""
     print("\n[TEST 2] Protected routes exist (5+ requirement)")
     
-    import services.api.routes.users as users_module
-    import services.api.routes.profiles as profiles_module
+    import nexova_suppliers.routes.users as users_module
+    import nexova_suppliers.routes.profiles as profiles_module
     
     protected_routes = []
     protected_routes.extend([r.path for r in users_module.router.routes])
@@ -64,7 +64,7 @@ def test_user_model_has_profile():
     """Test that User model is associated with Profile."""
     print("\n[TEST 3] User-Profile association")
     
-    import services.api.models as models
+    import nexova_suppliers.models as models
     
     # Check UserResponse has user_id
     if hasattr(models.ProfileResponse, '__annotations__'):
@@ -72,9 +72,9 @@ def test_user_model_has_profile():
         print(f"   - Fields: {list(models.ProfileResponse.__annotations__.keys())}")
     
     # Check database auto-creates profiles
-    import services.api.database as db_module
+    import nexova_suppliers.database as db_module
     
-    db = db_module.SuppliersDB("/tmp/test_nexova.json")
+    db = db_module.SuppliersDB(os.path.join(os.environ.get("TEMP", "."), "test_nexova.json"))
     
     # Create a user without name
     user = db.create_user("test@example.com", "password123")
@@ -89,10 +89,9 @@ def test_user_model_has_profile():
         if profile and profile['user_id'] == user['id']:
             print(f"✅ PASSED - User created: {user['id']}, Profile auto-created: {profile['id']}")
             db.close()
-            # Cleanup
-            import os
-            if os.path.exists("/tmp/test_nexova.json"):
-                os.remove("/tmp/test_nexova.json")
+            # Cleanup.\.venv\Scripts\python.exe -m pytest
+            if os.path.exists(os.path.join(os.environ.get("TEMP", "."), "test_nexova.json")):
+                os.remove(os.path.join(os.environ.get("TEMP", "."), "test_nexova.json"))
             return True
         else:
             print("❌ FAILED - Profile not auto-created for user")
@@ -106,7 +105,7 @@ def test_app_starts():
     """Test that app starts without errors."""
     print("\n[TEST 4] FastAPI app initialization")
     
-    import services.api.main as main_module
+    import nexova_suppliers.main as main_module
     
     app = main_module.app
     total_routes = len(app.routes)
@@ -161,4 +160,6 @@ if __name__ == "__main__":
     else:
         print(f"\n❌ {total - passed} test(s) failed")
         sys.exit(1)
+
+
 

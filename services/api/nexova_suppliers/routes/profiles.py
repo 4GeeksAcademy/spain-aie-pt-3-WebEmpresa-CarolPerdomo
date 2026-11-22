@@ -29,14 +29,14 @@ def get_own_profile(
     return ProfileResponse(
         id=profile['id'],
         user_id=profile['user_id'],
-        bio=profile.get('bio'),
+        name=profile.get('name'),
         phone=profile.get('phone'),
-        location=profile.get('location'),
+        address=profile.get('address'),
         specialization=profile.get('specialization'),
         experience_years=profile.get('experience_years'),
         created_at=profile['created_at'],
         updated_at=profile.get('updated_at')
-    )
+)
 
 @router.get("/{user_id}", response_model=ProfileResponse)
 def get_user_profile(
@@ -65,9 +65,9 @@ def get_user_profile(
     return ProfileResponse(
         id=profile['id'],
         user_id=profile['user_id'],
-        bio=profile.get('bio'),
+        name=profile.get('name'),
         phone=profile.get('phone'),
-        location=profile.get('location'),
+        address=profile.get('address'),
         specialization=profile.get('specialization'),
         experience_years=profile.get('experience_years'),
         created_at=profile['created_at'],
@@ -99,9 +99,9 @@ def update_own_profile(
     return ProfileResponse(
         id=updated_profile['id'],
         user_id=updated_profile['user_id'],
-        bio=updated_profile.get('bio'),
+        name=updated_profile.get('name'),
         phone=updated_profile.get('phone'),
-        location=updated_profile.get('location'),
+        address=updated_profile.get('address'),
         specialization=updated_profile.get('specialization'),
         experience_years=updated_profile.get('experience_years'),
         created_at=updated_profile['created_at'],
@@ -140,9 +140,9 @@ def update_user_profile(
     return ProfileResponse(
         id=updated_profile['id'],
         user_id=updated_profile['user_id'],
-        bio=updated_profile.get('bio'),
+        name=updated_profile.get('name'),
         phone=updated_profile.get('phone'),
-        location=updated_profile.get('location'),
+        address=updated_profile.get('address'),
         specialization=updated_profile.get('specialization'),
         experience_years=updated_profile.get('experience_years'),
         created_at=updated_profile['created_at'],
