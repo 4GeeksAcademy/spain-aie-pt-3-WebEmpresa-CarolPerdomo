@@ -13,11 +13,18 @@
 - Root TypeScript collection/search/transformation/validation utilities and npm typecheck/build scripts are present under `src/`.
 - `uis/website/` is an independent Next.js public website with a responsive corporate homepage, reusable header/service/section/footer components, organization JSON-LD, company services, and contact details.
 - `uis/backoffice/` is a separate Next.js app and layout with visible company KPIs, department signals, department filtering, text search, and a computed support-SLA gap. It labels its figures as briefing reference data, not live metrics.
-- `uis/backoffice/app/suppliers/page.tsx` now provides the supplier directory with country/category filters, supplier creation, rate edits, and status changes. Its Next.js API routes forward the login's HTTP-only `access_token` cookie as a Bearer token; the API listing adds TinyDB document IDs to every supplier.
+- `uis/backoffice/app/suppliers/page.tsx` provides the supplier directory with country/category filters, supplier creation, rate edits, and status changes. Its Next.js API routes forward the localStorage JWT as a Bearer token; the API listing adds TinyDB document IDs to every supplier.
 - `PUT /users/{user_id}` now updates account email and role with ownership/admin checks. Profile fields remain under `/profiles`; duplicate emails return 409. Added persistence and permission coverage in `services/api/tests/test_user_updates.py`.
 - User roles are `admin`, `manager`, and `user`. Admins can assign roles when creating users and changing roles; new users default to `user`. `GET /users/` is admin-only and returns password-free results. ASGI-level tests cover login, 401/403 behavior, profiles, user CRUD, and protected supplier access.
 - Retired the duplicate supplier screens under `uis/application` and the root HTML files. The former `/login/suppliers` route redirects to `/suppliers`.
 - Both frontend apps have per-app READMEs and run/build/lint scripts.
+- Backoffice and talent-pipeline views now include login, registration, profile editing, client-side route guards and logout. Authenticated requests send the JWT to the Nexova API; the candidate tracker Next proxy validates it before forwarding requests to the external tracker API without disclosing the JWT to that service. `/website` remains public.
+
+## Internal Authentication Verification
+
+- `npm run lint` and an isolated TypeScript check pass for `uis/backoffice/`.
+- `npm run build` also passes for `uis/backoffice/` when run with access to Google Fonts.
+- Installed tracker dependencies from its existing lockfile; its lint and production build both pass. `npm ci` reported 12 dependency audit findings (7 moderate, 4 high, 1 critical), but a subsequent `npm audit --json` returned zero vulnerabilities. The lockfile was not modified and no automatic fixes were applied. Next.js also warns that multiple lockfiles make its inferred Turbopack root ambiguous.
 
 ## Supplier Backoffice Verification
 

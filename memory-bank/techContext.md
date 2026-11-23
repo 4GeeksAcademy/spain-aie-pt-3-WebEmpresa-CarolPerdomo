@@ -11,7 +11,7 @@
 - `uis/website/` and `uis/backoffice/` are independent Next.js 16.3.4 App Router applications using React 19.2.8, TypeScript, Tailwind CSS 4, and ESLint. Each has its own `package.json`, lockfile, `app/` route/layout, and README. Their Next config pins the Turbopack root to that app directory because the monorepo contains multiple lockfiles.
 - `uis/website/app/page.tsx` renders the Nexova public site using reusable components. `uis/backoffice/app/page.tsx` renders an internal executive dashboard; its company and department figures are static reference data from the briefing, not a live data connection.
 - The current form is client-side only: submission is simulated in JavaScript; no backend persistence or email delivery is configured.
-- No backend was added for these frontends. Any future API or integration service belongs under `/services`.
+- The FastAPI authentication service under `/services/api` is integrated with the internal backoffice and talent-pipeline apps through server-side API routes. The public `uis/website/` candidate-registration flow remains a separate client-side experience and is not connected to persistence.
 
 ## Established Constraints
 

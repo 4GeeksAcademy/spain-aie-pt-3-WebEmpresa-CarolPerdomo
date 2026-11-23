@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
+import { AuthGuard } from "@/components/auth-guard";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${dmSans.variable} ${dmSerif.variable} h-full antialiased`}>
-      <body className="min-h-full bg-paper font-sans text-ink">{children}</body>
+      <body className="min-h-full bg-paper font-sans text-ink"><AuthGuard>{children}</AuthGuard></body>
     </html>
   );
 }
