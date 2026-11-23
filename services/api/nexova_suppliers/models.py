@@ -7,6 +7,7 @@ from datetime import datetime
 
 class RoleEnum(str, Enum):
     ADMIN = "admin"
+    MANAGER = "manager"
     USER = "user"
 
 class UserCreate(BaseModel):

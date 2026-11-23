@@ -15,7 +15,7 @@
 - `uis/backoffice/` is a separate Next.js app and layout with visible company KPIs, department signals, department filtering, text search, and a computed support-SLA gap. It labels its figures as briefing reference data, not live metrics.
 - `uis/backoffice/app/suppliers/page.tsx` now provides the supplier directory with country/category filters, supplier creation, rate edits, and status changes. Its Next.js API routes forward the login's HTTP-only `access_token` cookie as a Bearer token; the API listing adds TinyDB document IDs to every supplier.
 - `PUT /users/{user_id}` now updates account email and role with ownership/admin checks. Profile fields remain under `/profiles`; duplicate emails return 409. Added persistence and permission coverage in `services/api/tests/test_user_updates.py`.
-- User roles are restricted to `admin` and `user`. Added admin-only `GET /users/` with password-free results and ASGI-level auth/CRUD tests for login, 401/403 behavior, profiles, user CRUD, and protected supplier access.
+- User roles are `admin`, `manager`, and `user`. Admins can assign roles when creating users and changing roles; new users default to `user`. `GET /users/` is admin-only and returns password-free results. ASGI-level tests cover login, 401/403 behavior, profiles, user CRUD, and protected supplier access.
 - Retired the duplicate supplier screens under `uis/application` and the root HTML files. The former `/login/suppliers` route redirects to `/suppliers`.
 - Both frontend apps have per-app READMEs and run/build/lint scripts.
 

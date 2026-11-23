@@ -15,7 +15,7 @@ from nexova_suppliers.routes.users import update_user
 
 @pytest.fixture
 def database():
-    with TemporaryDirectory(dir=Path(__file__).parent) as temp_dir:
+    with TemporaryDirectory() as temp_dir:
         db_path = Path(temp_dir) / "users.json"
         db = SuppliersDB(db_path)
         try:

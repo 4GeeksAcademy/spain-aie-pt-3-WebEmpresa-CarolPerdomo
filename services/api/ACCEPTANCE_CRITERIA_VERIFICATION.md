@@ -1,15 +1,15 @@
 # ✅ Acceptance Criteria Verification - Nexova API Authentication
 
-**Status:** ALL 13 CRITERIA SATISFIED ✅
-**Last Updated:** 2026-11-22
+**Status:** Implementation reviewed against all 13 criteria; latest runtime verification is blocked by filesystem permissions.
+**Last Updated:** 2026-11-23
 
 ---
 
 ## Executive Summary
 
-The Nexova API authentication system has been successfully implemented with **complete compliance** to all 13 acceptance criteria. The system includes:
+The Nexova API authentication implementation was reviewed against all 13 acceptance criteria. Code inspection confirms the role, auth, ownership, storage, and route requirements; the latest HTTP suite could not complete because the environment denied TinyDB writes to temporary folders.
 
-- **Role-based user system** (admin/user)
+- **Role-based user system** (admin/manager/user)
 - **Secure password hashing** (bcrypt)
 - **JWT token authentication** (24-hour expiration)
 - **Access control** (401/403 enforcement)
@@ -53,13 +53,14 @@ The Nexova API authentication system has been successfully implemented with **co
 
 ---
 
-### ✅ 3. Campo role con Valores admin/user; Default user
+### ✅ 3. Campo role con Valores admin/manager/user; Default user
 
 **Location:** `/services/api/nexova_suppliers/models.py`
 
 ```python
 class RoleEnum(str, Enum):
     ADMIN = "admin"
+    MANAGER = "manager"
     USER = "user"
 
 class AdminUserCreate(UserCreate):
@@ -70,7 +71,7 @@ class AdminUserCreate(UserCreate):
 - `create_user()` accepts role parameter
 - JWT tokens include role in payload
 - POST /auth/register: role is not accepted; registration always creates a 'user'
-- POST /users/: role is optional and defaults to 'user'; admins can create 'admin' or 'user'
+- POST /users/: role is optional and defaults to 'user'; admins can assign 'admin', 'manager' or 'user'
 - PUT /users/{user_id}: owners can update email; admins can update other accounts or change roles
 
 ---
@@ -340,7 +341,7 @@ class SuppliersDB:
 | **Access Control** | ✅ | 401 Unauthorized, 403 Forbidden |
 | **Data Ownership** | ✅ | Enforced per route |
 | **Environment Secrets** | ✅ | Mandatory SECRET_KEY |
-| **Role System** | ✅ | admin/user |
+| **Role System** | ✅ | admin/manager/user |
 | **Data Integrity** | ✅ | Auto-Profile creation |
 | **Token Expiration** | ✅ | 24 hours (configurable) |
 | **Bearer Token** | ✅ | Authorization header parsing |
@@ -379,9 +380,11 @@ class SuppliersDB:
 
 ---
 
-## Current Verification (2026-11-22)
+## Current Verification (2026-11-23)
 
-The current API suite passed with `6 passed` using `pytest -p no:cacheprovider tests -q`. It exercises Bearer-token HTTP requests, 401/403 behavior, User/Profile CRUD, the admin user list, default roles, password hashing, and supplier access.
+The previously recorded API suite passed with `6 passed` using `pytest -p no:cacheprovider tests -q`. It exercises Bearer-token HTTP requests, 401/403 behavior, User/Profile CRUD, the admin user list, default roles, password hashing, and supplier access. The role rubric and valid-token supplier CRUD coverage were updated on 2026-11-23; use the current local run below for the latest result.
+
+Latest local run on 2026-11-23: `1 passed, 5 errors`. The enum assertion passed, but the HTTP and persistence fixtures could not create TinyDB files: Windows returned `PermissionError` for temporary directories. These errors are environment write restrictions, so the expanded HTTP scenarios remain unverified in this run.
 
 ## Legacy Test Results
 
@@ -444,20 +447,20 @@ python -m uvicorn main:app --reload
 
 ## Conclusion
 
-The Nexova API authentication system is **production-ready** with:
+The Nexova API authentication system implements the following capabilities; the latest runtime regression suite still needs to complete in a writable test environment:
 
 ✅ **Complete CRUD operations** for users  
 ✅ **Automatic profile creation** for every user  
-✅ **Role-based system** (admin/user)
+✅ **Role-based system** (admin/manager/user)
 ✅ **Secure password hashing** with bcrypt  
 ✅ **Valid JWT tokens** with 24-hour expiration  
 ✅ **Proper access control** (401/403 enforcement)  
 ✅ **Environment configuration** for secrets  
 ✅ **16 protected endpoints**
 ✅ **TinyDB persistence** without PostgreSQL  
-✅ **Zero regressions** in existing functionality  
+✅ **Regression coverage** for existing protected routes
 
-**Status: ✅ ALL 13 ACCEPTANCE CRITERIA SATISFIED**
+**Status: Implemented; current runtime verification pending**
 
 ---
 
@@ -478,6 +481,8 @@ The Nexova API authentication system is **production-ready** with:
 - [x] Restricción de asignación de roles elevados a administradores autenticados.
 - [x] Expiración JWT configurable mediante `ACCESS_TOKEN_EXPIRE_MINUTES`.
 - [x] Eliminación de referencias antiguas `bio` y `location` del código Python revisado.
+- [x] Roles `admin`, `manager` y `user`; los admins pueden asignarlos en `POST /users/` y `PUT /users/{user_id}`, y el valor predeterminado es `user`.
+- [x] Cobertura HTTP añadida para el CRUD de proveedores con token válido; ejecución pendiente por restricciones de escritura del entorno.
 
 ### Resultado de pruebas
 
