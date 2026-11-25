@@ -1,6 +1,7 @@
 from tinydb import TinyDB, Query
 from pathlib import Path
 from datetime import datetime
+from threading import RLock
 from typing import Optional
 from .models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
 from .auth import AuthService
@@ -14,6 +15,9 @@ class SuppliersDB:
         self.suppliers_table = self.db.table('suppliers')
         self.users_table = self.db.table('users')
         self.profiles_table = self.db.table('profiles')
+        self.password_reset_tokens_table = self.db.table('password_reset_tokens')
+        self.password_audit_table = self.db.table('password_audit')
+        self._password_lock = RLock()
 
     # ============ User Operations ============
     
@@ -99,6 +103,77 @@ class SuppliersDB:
         
         self.users_table.update(updates, doc_ids=[user_id])
         return self.get_user_by_id(user_id)
+
+    def create_password_reset_token(self, user_id: int, token_hash: str, expires_at: datetime) -> None:
+        """Keep only a hash of the reset token and invalidate older links."""
+        with self._password_lock:
+            Token = Query()
+            self.password_reset_tokens_table.update(
+                {'used_at': datetime.utcnow().isoformat()},
+                (Token.user_id == user_id) & (Token.used_at == None),
+            )
+            self.password_reset_tokens_table.insert({
+                'user_id': user_id,
+                'token_hash': token_hash,
+                'created_at': datetime.utcnow().isoformat(),
+                'expires_at': expires_at.isoformat(),
+                'used_at': None,
+            })
+
+    def consume_password_reset_token(self, token_hash: str, password_hash: str, now: datetime) -> bool:
+        """Atomically validate a token, change the password, and consume it."""
+        with self._password_lock:
+            Token = Query()
+            matches = self.password_reset_tokens_table.search(Token.token_hash == token_hash)
+            if not matches:
+                return False
+            record = matches[0]
+            if record.get('used_at') or datetime.fromisoformat(record['expires_at']) <= now:
+                return False
+            user_id = record['user_id']
+            if not self.get_user_by_id(user_id):
+                return False
+            self.users_table.update({'password': password_hash}, doc_ids=[user_id])
+            self.password_reset_tokens_table.update(
+                {'used_at': now.isoformat()},
+                (Token.user_id == user_id) & (Token.used_at == None),
+            )
+            return True
+
+    def password_reset_token_is_valid(self, token_hash: str, now: datetime) -> bool:
+        with self._password_lock:
+            Token = Query()
+            matches = self.password_reset_tokens_table.search(Token.token_hash == token_hash)
+            if not matches:
+                return False
+            record = matches[0]
+            return not record.get('used_at') and datetime.fromisoformat(record['expires_at']) > now and bool(self.get_user_by_id(record['user_id']))
+
+    def get_password_reset_token_user_id(self, token_hash: str) -> Optional[int]:
+        Token = Query()
+        record = self.password_reset_tokens_table.get(Token.token_hash == token_hash)
+        return record.get('user_id') if record else None
+
+    def record_password_audit(self, event: str, client_ip: Optional[str], user_id: Optional[int] = None) -> None:
+        self.password_audit_table.insert({
+            'event': event,
+            'user_id': user_id,
+            'timestamp': datetime.utcnow().isoformat(),
+            'client_ip': client_ip,
+        })
+
+    def update_password(self, user_id: int, password_hash: str) -> bool:
+        """Change a user's password and invalidate any outstanding reset links."""
+        with self._password_lock:
+            if not self.get_user_by_id(user_id):
+                return False
+            self.users_table.update({'password': password_hash}, doc_ids=[user_id])
+            Token = Query()
+            self.password_reset_tokens_table.update(
+                {'used_at': datetime.utcnow().isoformat()},
+                (Token.user_id == user_id) & (Token.used_at == None),
+            )
+            return True
     
     def delete_user(self, user_id: int) -> bool:
         """Delete user and their profile."""

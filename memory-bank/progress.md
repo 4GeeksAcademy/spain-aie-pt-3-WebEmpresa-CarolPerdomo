@@ -151,6 +151,19 @@
 - `pytest -p no:cacheprovider tests/test_user_updates.py -q` passes (4 tests), including email persistence after reopening TinyDB, admin-only role updates, and rejection of Profile fields on User updates.
 - `pytest -p no:cacheprovider tests -q` passes (6 tests), including real Bearer-authenticated ASGI requests across users, profiles, and suppliers.
 
+## Password Recovery and Change
+
+- Implemented `POST /auth/forgot-password` with a generic `200` response and background Resend delivery; reset links expire after 30 minutes and only SHA-256 token hashes are persisted in TinyDB.
+- Implemented one-time `POST /auth/reset-password`, authenticated `POST /auth/change-password`, and authenticated `GET /auth/me` (email plus profile data). Password updates invalidate outstanding reset links.
+- Reset token lifetime is configurable through `PASSWORD_RESET_TOKEN_TTL_MINUTES` (15–60 minutes, default 30); password reset requests/outcomes and password changes are recorded with timestamp and client IP.
+- Added `/forgot-password`, `/reset-password`, and `/account/change-password` to both Backoffice and Talent Pipeline Tracker, with bearer-authenticated change-password proxies and the forgot-password link on login.
+- Added root `.env.example` and API documentation for `RESEND_API_KEY`, `EMAIL_FROM`, and `PASSWORD_RESET_URL`. The API loads the ignored root `.env` for local runs; no API key value was read, written, or included in tracked files.
+- Corrected the `.env` root path after local startup exposed a one-directory offset; verified the API process now sees `SECRET_KEY` and `RESEND_API_KEY` as configured without printing their values.
+- Resend delivery failures now log a sanitized provider status/message (redacting email addresses and API-key-like tokens) so 403 causes can be diagnosed without exposing credentials; Python syntax check passes.
+- API `py_compile`, ESLint, and `npx tsc --noEmit` pass for the changed API and both frontend apps.
+- Next production builds compile the app code but stop with `spawn EPERM` when Next starts its worker/type-check phase in this Windows environment (also reproduced with `--webpack`).
+- Real email delivery has not been exercised; it depends on a valid Resend API key and verified sender configuration.
+
 ## Update Policy
 
 Update this file after completing a meaningful implementation or verification step. Record only verified outcomes; keep unfinished or externally dependent checks explicitly marked as pending.

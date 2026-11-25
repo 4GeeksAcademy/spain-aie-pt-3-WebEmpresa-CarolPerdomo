@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 import jwt
 import bcrypt
+from .config import load_project_env
+
+load_project_env()
 
 # SECRET_KEY es obligatorio desde el entorno
 SECRET_KEY = os.getenv("SECRET_KEY")

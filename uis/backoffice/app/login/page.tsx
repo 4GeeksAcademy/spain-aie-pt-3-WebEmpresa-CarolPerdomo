@@ -96,6 +96,7 @@ export default function LoginPage() {
         >
           {loading ? "Ingresando..." : "Iniciar sesión"}
         </button>
+        <p className="text-center text-sm"><Link className="font-medium text-pine underline" href="/forgot-password">¿Olvidaste tu contraseña?</Link></p>
         <p className="text-center text-sm text-slate-600">¿Aún no tienes cuenta? <Link className="font-semibold text-slate-900 underline" href="/register">Crear cuenta</Link></p>
       </form>
     </main>

@@ -21,6 +21,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - All candidate pipeline and profile views require a valid Nexova API session. `/login` and `/register` are public.
 - Registration uses `POST /auth/register`, then logs in and saves optional name, phone and address through `PUT /profiles/me`.
 - The JWT is kept in `localStorage`; protected requests carry `Authorization: Bearer <token>`. A 401 removes the token and returns to `/login`.
+- Password recovery is available at `/forgot-password` and `/reset-password`; signed-in users can update their password at `/account/change-password`.
 - `API_URL` points to the Nexova FastAPI server (default `http://127.0.0.1:8000`). `TRACKER_API_URL` points to the candidate service (default `https://playground.4geeks.com/tracker/api/v1`). The server proxy validates the JWT with Nexova before forwarding candidate requests and does not send the JWT to the external tracker.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

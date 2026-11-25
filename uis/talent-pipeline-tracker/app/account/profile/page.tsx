@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch } from "@/lib/auth-client";
 import { SessionNav } from "@/components/session-nav";
 
-type User = { email: string };
+type Account = { email: string; profile: { name: string | null; phone: string | null; address: string | null } | null };
 type Profile = { name: string | null; phone: string | null; address: string | null };
 
 export default function AccountProfilePage() {
@@ -14,10 +14,10 @@ export default function AccountProfilePage() {
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
   useEffect(() => {
     let active = true;
-    void Promise.all([apiFetch("/api/users/me"), apiFetch("/api/profiles/me")]).then(async ([userResponse, profileResponse]) => {
-      const [user, savedProfile] = await Promise.all([userResponse.json(), profileResponse.json()]) as [User, Profile];
-      if (!userResponse.ok || !profileResponse.ok) throw new Error("No se pudo cargar la cuenta.");
-      if (active) { setEmail(user.email); setProfile({ name: savedProfile.name ?? "", phone: savedProfile.phone ?? "", address: savedProfile.address ?? "" }); }
+    void apiFetch("/api/auth/me").then(async (response) => {
+      const account = await response.json() as Account;
+      if (!response.ok) throw new Error("No se pudo cargar la cuenta.");
+      if (active) { setEmail(account.email); setProfile({ name: account.profile?.name ?? "", phone: account.profile?.phone ?? "", address: account.profile?.address ?? "" }); }
     }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "No se pudo cargar el perfil."); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -42,5 +42,6 @@ export default function AccountProfilePage() {
       <label>Dirección<input autoComplete="street-address" value={profile.address ?? ""} onChange={(e) => setProfile({ ...profile, address: e.target.value })} /></label>
       <div className="form-actions"><button className="button button-primary" disabled={saving}>{saving ? "Guardando…" : "Guardar cambios"}</button></div>
     </form></section>}
+    <p className="back-link"><Link href="/account/change-password">Cambiar contraseña</Link></p>
   </main>;
 }

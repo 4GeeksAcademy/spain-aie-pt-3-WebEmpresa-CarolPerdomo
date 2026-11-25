@@ -7,6 +7,7 @@ Internal dashboard for the Nexova monorepo. It surfaces company and departmental
 - Open `/login` to sign in or `/register` to create an account. Public registration uses `POST /auth/register`; optional name, phone and address are saved to the new profile with `PUT /profiles/me`.
 - The JWT is held in `localStorage`. Protected screens validate it through `GET /users/me`; API requests go through Next route handlers with a Bearer token.
 - A `401` clears the token and sends the user to `/login`. `/`, `/suppliers` and `/account/profile` require a valid session.
+- Password recovery is available at `/forgot-password` and `/reset-password`; signed-in users can update their password at `/account/change-password`.
 - Set `API_URL` for the FastAPI server (defaults to `http://127.0.0.1:8000`). Keep this server-only variable out of client bundles.
 
 ## Run locally

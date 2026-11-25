@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch } from "@/lib/auth-client";
 import { Sidebar } from "@/components/sidebar";
 
-type User = { email: string };
+type Account = { email: string; profile: { name: string | null; phone: string | null; address: string | null } | null };
 type Profile = { name: string | null; phone: string | null; address: string | null };
 
 export default function AccountProfilePage() {
@@ -18,17 +18,11 @@ export default function AccountProfilePage() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([apiFetch("/api/users/me"), apiFetch("/api/profiles/me")])
-      .then(async ([userResponse, profileResponse]) => {
-        const [userBody, profileBody] = await Promise.all([userResponse.json(), profileResponse.json()]) as [User, Profile];
-        if (!userResponse.ok || !profileResponse.ok) throw new Error("No se pudo cargar la cuenta. Vuelve a iniciar sesión.");
-        if (active) {
-          setEmail(userBody.email);
-          setProfile({ name: profileBody.name ?? "", phone: profileBody.phone ?? "", address: profileBody.address ?? "" });
-        }
-      })
-      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "No se pudo cargar el perfil."); })
-      .finally(() => { if (active) setLoading(false); });
+    void apiFetch("/api/auth/me").then(async (response) => {
+      const account = await response.json() as Account;
+      if (!response.ok) throw new Error("No se pudo cargar la cuenta.");
+      if (active) { setEmail(account.email); setProfile({ name: account.profile?.name ?? "", phone: account.profile?.phone ?? "", address: account.profile?.address ?? "" }); }
+    }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "No se pudo cargar el perfil."); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
 
@@ -60,6 +54,7 @@ export default function AccountProfilePage() {
     <main className="min-w-0 px-4 py-8 sm:px-7 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-3xl">
         <Link href="/" className="text-sm font-semibold text-pine hover:underline">← Volver al resumen</Link>
+        <Link href="/account/change-password" className="ml-5 text-sm font-semibold text-pine hover:underline">Cambiar contraseña</Link>
         <header className="mt-7 border-b border-line pb-6"><p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">Cuenta</p><h1 className="mt-2 font-display text-4xl text-ink">Mi perfil</h1><p className="mt-2 text-sm text-muted">Consulta tu cuenta y actualiza tus datos de contacto.</p></header>
         {error && <p role="alert" className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
         {notice && <p role="status" className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{notice}</p>}

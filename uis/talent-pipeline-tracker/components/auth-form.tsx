@@ -75,5 +75,6 @@ export function AuthForm({ mode }: Props) {
       <div className="form-actions"><button className="button button-primary" disabled={busy}>{busy ? "Procesando…" : registering ? "Crear cuenta e iniciar sesión" : "Iniciar sesión"}</button></div>
     </form>
     <p className="auth-switch">{registering ? "¿Ya tienes cuenta? " : "¿Necesitas una cuenta? "}<Link href={registering ? "/login" : "/register"}>{registering ? "Inicia sesión" : "Regístrate"}</Link></p>
+    {!registering && <p className="auth-switch"><Link href="/forgot-password">¿Olvidaste tu contraseña?</Link></p>}
   </section></main>;
 }

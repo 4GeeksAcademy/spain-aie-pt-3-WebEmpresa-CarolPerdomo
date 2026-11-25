@@ -66,6 +66,20 @@ class TokenResponse(BaseModel):
     token_type: str
     user: UserResponse
 
+class ForgotPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(..., min_length=32, max_length=200)
+    new_password: str = Field(..., min_length=8)
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
+
 # ============ Suppliers Models ============
 
 class CountryEnum(str, Enum):
