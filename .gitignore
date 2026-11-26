@@ -1,3 +1,62 @@
 node_modules/
 dist/
 *.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# TinyDB data
+services/api/data/
+data/suppliers.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.env
+.env.local
+*.log
+
+# Keep Next.js source helpers visible despite the generic Python lib/ ignore rule.
+!uis/backoffice/lib/
+uis/backoffice/lib/*
+!uis/backoffice/lib/auth-client.ts
+!uis/backoffice/lib/api-proxy.ts
+!uis/backoffice/lib/supplier-proxy.ts
+!uis/backoffice/lib/incident-proxy.ts
+!uis/backoffice/lib/incidents.ts
+!uis/talent-pipeline-tracker/lib/
+uis/talent-pipeline-tracker/lib/*
+!uis/talent-pipeline-tracker/lib/auth-client.ts

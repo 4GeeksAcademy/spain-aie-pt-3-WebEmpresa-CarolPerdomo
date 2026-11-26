@@ -78,13 +78,37 @@ You are building **one company** across many milestones and projects. Each top-l
 
 ---
 
-## Current status of the template
+## Current repository status
 
-> 💡 This repository currently provides a **base folder structure and documentation skeleton** only. It does not include runnable apps or global scripts yet.
->
-> - `CONTEXT.md` is a placeholder and must be replaced with your assigned company context.
-> - There is no root `AGENTS.md` yet.
-> - Shared package metadata exists in `packages/shared/package.json` (`@repo/shared-types`), but no workspace runner is configured at root.
+This repository contains the Nexova project and retains the template's folder separation. It includes a public website, internal interfaces, a FastAPI service, and a historical incident importer. The Next.js apps have their own dependencies and commands; there is no root workspace runner.
+
+- `CONTEXT.md` and `nexova-BRIEFING.es.md` document the project context.
+- Incident import and management are mapped in [How to deliver this project](#how-to-deliver-this-project).
+- `packages/shared/package.json` contains shared TypeScript type metadata (`@repo/shared-types`).
+
+## How to deliver this project
+
+The incident manager is organized by responsibility:
+
+```text
+scripts/
+└── seed_incidents.py                 # Idempotent historical CSV import
+packages/
+└── shared/
+    └── python/nexova_shared/
+        └── incident_csv.py           # Shared validation and mapping
+services/
+└── api/
+    └── nexova_suppliers/routes/
+        └── incidents.py              # Incident and summary endpoints
+uis/
+└── backoffice/app/incidents/
+    ├── page.tsx                      # List, filters, and status changes
+    ├── new/page.tsx                  # Registration
+    └── summary/page.tsx              # Aggregate metrics
+```
+
+The importer and API reuse validation from `packages/shared`. The importer transforms and loads the CSV, `services/api` provides management endpoints, and `uis/backoffice` provides registration, list, and summary screens. See the folder READMEs for run instructions.
 
 ---
 

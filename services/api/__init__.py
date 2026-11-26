@@ -1,2 +1,1 @@
-"""Supplier Management Service"""
-__version__ = "0.1.0"
+# Nexova Suppliers API package

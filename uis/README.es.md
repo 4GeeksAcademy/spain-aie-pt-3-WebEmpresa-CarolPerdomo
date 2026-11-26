@@ -13,3 +13,8 @@ Organiza `uis/` por **distintas áreas de la compañía** — cada subcarpeta ag
 - **Recomendación**: documenta en este archivo (o en sub-READMEs) las aplicaciones que vayas añadiendo, su objetivo, tecnología usada y cómo ejecutarlas.
 
 > _These instructions are also available in [English](./README.md)._
+
+## Interfaz de este proyecto
+
+- [`backoffice/`](./backoffice/README.md): interfaz Next.js para el equipo interno.
+- El área [`backoffice/app/incidents/`](./backoffice/app/incidents/) contiene el registro de incidencias, el listado filtrable con acciones de estado y el resumen de métricas. Sus solicitudes pasan por rutas proxy autenticadas hacia `services/api`.
