@@ -76,15 +76,39 @@ Estás construyendo **una sola empresa** a lo largo de muchos hitos y proyectos.
 
 **Regla rápida:** si tiene interfaz visual → `uis/`. Si expone una API o corre en segundo plano → `services/`. Si mueve o transforma datos → `data/`. Si el trabajo lo hace un modelo de IA → `agents/` (+ `skills/` o `mcps/` según haga falta).
 
+## Cómo entregar este proyecto
+
+El gestor de incidencias se entrega organizado por responsabilidad dentro del monorepo:
+
+```text
+scripts/
+└── seed_incidents.py                 # Carga idempotente del CSV histórico
+packages/
+└── shared/
+    └── python/nexova_shared/
+        └── incident_csv.py           # Validación y mapeo compartidos
+services/
+└── api/
+    └── nexova_suppliers/routes/
+        └── incidents.py              # Endpoints de incidencias y resumen
+uis/
+└── backoffice/app/incidents/
+    ├── page.tsx                      # Listado, filtros y cambios de estado
+    ├── new/page.tsx                  # Registro
+    └── summary/page.tsx              # Métricas agregadas
+```
+
+`seed_incidents.py` y la API reutilizan la validación de `packages/shared`; el script transforma e importa el CSV, `services/api` expone la gestión y `uis/backoffice` ofrece las pantallas de registro, listado y resumen. Las instrucciones para ejecutar cada parte están en los README de `scripts/`, `services/api/` y `uis/backoffice/`.
+
 ---
 
-## Estado actual de la plantilla
+## Estado actual del repositorio
 
-> 💡 Actualmente el repositorio ofrece solo una **estructura base de carpetas y documentación**. Todavía no incluye aplicaciones ejecutables ni scripts globales en la raíz.
->
-> - `CONTEXT.md` es un placeholder y debe sustituirse por el contexto de la empresa asignada.
-> - No existe todavía un `AGENTS.md` en la raíz.
-> - Existe metadata del paquete compartido en `packages/shared/package.json` (`@repo/shared-types`), pero aún no hay runner de workspace en raíz.
+Este repositorio contiene el proyecto Nexova y mantiene la separación de carpetas de la plantilla. Incluye un sitio público, interfaces internas, una API FastAPI y el importador histórico de incidencias. Las aplicaciones Next.js tienen dependencias y comandos propios; no hay runner de workspace en la raíz.
+
+- `CONTEXT.md` y `nexova-BRIEFING.es.md` documentan el contexto funcional.
+- La carga y gestión histórica de incidencias están descritas en [Cómo entregar este proyecto](#cómo-entregar-este-proyecto).
+- `packages/shared/package.json` conserva la metadata de tipos TypeScript compartidos (`@repo/shared-types`).
 
 ---
 

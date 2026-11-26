@@ -6,3 +6,8 @@ Cada subcarpeta dentro de `services/` debe corresponder a **un servicio concreto
 
 - **Propósito principal**: centralizar toda la lógica backend, APIs y consumidores de colas que dan soporte a los casos de uso de la compañía.
 - **Recomendación**: documenta en este archivo (o en sub-READMEs) los servicios que vayas añadiendo, su objetivo, tecnología usada y cómo ejecutarlos.
+
+## Servicio de este proyecto
+
+- [`api/`](./api/README.md): servicio FastAPI con autenticación y gestión de incidencias bajo `/api/incidents`. Usa TinyDB para persistencia y reutiliza las reglas Python de `packages/shared/python/nexova_shared/incident_csv.py`.
+- La carga del histórico se ejecuta con `python scripts/seed_incidents.py` desde la raíz del repositorio. Consulta [`api/README.md`](./api/README.md) para endpoints y configuración.

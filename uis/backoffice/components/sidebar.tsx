@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { LogoutButton } from "@/components/logout-button";
 
 const navigation = [
-  { label: "Resumen", href: "/#resumen" },
-  { label: "Operaciones", href: "/#operaciones" },
-  { label: "Prioridades", href: "/#prioridades" },
-  { label: "Incidencias", href: "/incidencias" },
+  { label: "Resumen", href: "#resumen" },
+  { label: "Operaciones", href: "#operaciones" },
+  { label: "Prioridades", href: "#prioridades" },
+  { label: "Incidencias", href: "/incidents" },
+  { label: "Resumen incidencias", href: "/incidents/summary" },
+  { label: "Proveedores", href: "/suppliers" },
+  { label: "Mi perfil", href: "/account/profile" },
+  { label: "Análisis CSV", href: "/incidencias" },
 ];
 
 export function Sidebar({ active = "resumen" }: { active?: "resumen" | "incidencias" }) {
@@ -43,9 +48,10 @@ export function Sidebar({ active = "resumen" }: { active?: "resumen" | "incidenc
           ))}
         </ul>
       </nav>
-      <div className="hidden border-t border-white/15 px-7 py-5 text-xs leading-5 text-white/55 lg:mt-auto lg:block">
+      <div className="border-t border-white/15 px-5 py-4 text-xs leading-5 text-white/70 lg:mt-auto lg:px-7 lg:py-5">
         <p>Contexto de empresa</p>
         <p>Valencia · Miami</p>
+        <LogoutButton />
       </div>
     </aside>
   );
