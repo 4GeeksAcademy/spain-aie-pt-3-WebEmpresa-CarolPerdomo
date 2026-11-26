@@ -4,7 +4,7 @@ Protected routes for supplier operations (create, read, update, delete).
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional, List
-from ..models import SupplierCreate, StatusEnum
+from ..models import CategoryEnum, CountryEnum, SupplierCreate, SupplierRateUpdate, SupplierStatusUpdate
 from ..database import SuppliersDB
 from ..dependencies import get_db, get_current_user
 
@@ -29,16 +29,12 @@ def create_supplier(
     **Protegido:** Requiere token JWT válido.
     Solo usuarios autenticados pueden crear proveedores.
     """
-    try:
-        created = db.create_supplier(supplier)
-        return created
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    return db.create_supplier(supplier)
 
 @router.get("", response_model=List[dict])
 def list_suppliers(
-    country: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
+    country: Optional[CountryEnum] = Query(None),
+    category: Optional[CategoryEnum] = Query(None),
     user_payload: dict = Depends(get_current_user),
     db: SuppliersDB = Depends(get_db)
 ):
@@ -47,7 +43,10 @@ def list_suppliers(
     
     **Protegido:** Requiere token JWT válido.
     """
-    return db.get_all_suppliers(country=country, category=category)
+    return db.get_all_suppliers(
+        country=country.value if country else None,
+        category=category.value if category else None,
+    )
 
 @router.get("/{supplier_id}", response_model=dict)
 def get_supplier(
@@ -68,7 +67,7 @@ def get_supplier(
 @router.patch("/{supplier_id}/rate", response_model=dict)
 def update_rate(
     supplier_id: int,
-    update: dict,
+    update: SupplierRateUpdate,
     user_payload: dict = Depends(get_current_user),
     db: SuppliersDB = Depends(get_db)
 ):
@@ -77,10 +76,7 @@ def update_rate(
     
     **Protegido:** Requiere token JWT válido.
     """
-    if 'monthly_rate' not in update or update['monthly_rate'] <= 0:
-        raise HTTPException(status_code=422, detail="Tarifa debe ser mayor a 0")
-    
-    result = db.update_rate(supplier_id, update['monthly_rate'])
+    result = db.update_rate(supplier_id, update.monthly_rate)
     if not result:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
     return result
@@ -88,7 +84,7 @@ def update_rate(
 @router.patch("/{supplier_id}/status", response_model=dict)
 def update_status(
     supplier_id: int,
-    update: dict,
+    update: SupplierStatusUpdate,
     user_payload: dict = Depends(get_current_user),
     db: SuppliersDB = Depends(get_db)
 ):
@@ -97,10 +93,7 @@ def update_status(
     
     **Protegido:** Requiere token JWT válido.
     """
-    if 'status' not in update or update['status'] not in ['active', 'suspended']:
-        raise HTTPException(status_code=422, detail="Estado inválido. Debe ser 'active' o 'suspended'")
-    
-    result = db.update_status(supplier_id, update['status'])
+    result = db.update_status(supplier_id, update.status.value)
     if not result:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
     return result

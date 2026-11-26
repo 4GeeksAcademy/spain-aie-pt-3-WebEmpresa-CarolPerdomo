@@ -38,8 +38,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         )
     
     payload = AuthService.decode_token(token)
-    
-    if payload is None:
+
+    if payload is None or payload.get("token_type", "access") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",

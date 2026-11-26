@@ -45,6 +45,13 @@
 - `npm run build` from `uis/backoffice/` completes successfully with Next.js 16.3.4; the build includes `/suppliers` and the authenticated supplier API proxy routes.
 - The production build required network access to fetch the Google Fonts already imported by `app/layout.tsx`.
 
+## Password Recovery and Change
+
+- Added `POST /auth/forgot-password`, `/reset-password`, and authenticated `/change-password`. Reset links are signed JWTs with configurable 15–60 minute expiry, stored one-time identifiers, and invalidation after password changes. Forgot-password responds with the same 200 payload for known and unknown emails.
+- Added Resend delivery through `RESEND_API_KEY` and optional `RESEND_FROM_EMAIL`; reset URLs use `FRONTEND_BASE_URL`. Variable names and safe placeholders are documented in the root `.env.example` and API README.
+- Added backoffice pages at `/forgot-password`, `/reset-password`, and `/account/change-password`, plus the login recovery link. The authenticated change proxy forwards the HTTP-only session cookie as Bearer authorization.
+- Verification: API password recovery/email tests pass (4 tests), including expired/reused token rejection, password persistence, generic forgot response, authenticated password change, and a mocked Resend HTTP request containing the link. `npm run build` in `uis/backoffice/` completes and includes all three pages and API proxies. Actual inbox delivery still requires a registered test recipient and was not externally verified.
+
 ## Authentication System (New)
 
 **Location:** `/services/api/` - Complete REST API with authentication foundation.
@@ -204,6 +211,14 @@
 
 Update this file after completing a meaningful implementation or verification step. Record only verified outcomes; keep unfinished or externally dependent checks explicitly marked as pending.
 
+
+## Supplier Directory Acceptance Review (2026-11-22)
+
+- Tightened supplier input validation: unknown fields (including client-supplied updated_at) are rejected, status/country/category use enums, rates must be finite and positive, categories require at least one item, and contact email/currency-country pairing are validated.
+- Supplier create/get/update responses include the TinyDB document ID. Supplier creation and rate changes generate a UTC updated_at; filters validate input and combine country/category criteria.
+- Seeder now fills missing briefing entries by name without duplicates, reports inserted and total counts, closes the database reliably, and runs against an injectable DB path. Removed employee names from supplier fixture notes.
+- Backoffice supplier table now shows all briefing fields, including notes and timestamp, and highlights renewals within 60 days.
+- Verification: uv run pytest -p no:cacheprovider tests/test_auth_http.py tests/test_supplier_seed.py -q passes (5 tests); npm run build in uis/backoffice passes; git diff --check passes.
 ## Centralized Incident Manager (New Milestone)
 
 - Added the `Incident` model fields, allowed values, UTC timestamps, TinyDB persistence, lifecycle transition rules, and JWT-protected `/api/incidents` endpoints for create, list/filter, detail, status update, and summary.

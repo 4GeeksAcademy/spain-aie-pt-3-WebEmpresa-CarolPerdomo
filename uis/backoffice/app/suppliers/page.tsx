@@ -12,6 +12,7 @@ type Supplier = {
   monthly_rate: number;
   currency: "EUR" | "USD";
   status: "active" | "suspended";
+  updated_at?: string | null;
   contract_renewal_date?: string | null;
   contact_email?: string | null;
   notes?: string | null;
@@ -35,6 +36,24 @@ const buttonClass = "rounded-lg bg-pine px-4 py-2.5 text-sm font-semibold text-w
 function messageFrom(body: unknown, fallback: string) {
   if (body && typeof body === "object" && "detail" in body && typeof body.detail === "string") return body.detail;
   return fallback;
+}
+
+function isRenewalSoon(value?: string | null) {
+  if (!value) return false;
+  const renewal = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(renewal.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysUntil = Math.ceil((renewal.getTime() - today.getTime()) / 86_400_000);
+  return daysUntil >= 0 && daysUntil <= 60;
+}
+
+function formatTimestamp(value?: string | null) {
+  if (!value) return "N/D";
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime())
+    ? "?"
+    : timestamp.toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" });
 }
 
 export default function SuppliersPage() {
@@ -174,15 +193,17 @@ export default function SuppliersPage() {
 
         <section className="mt-5 overflow-hidden rounded-2xl border border-line bg-white shadow-sm" aria-label="Listado de proveedores">
           {loading ? <p className="p-8 text-sm text-muted">Cargando proveedores…</p> : suppliers.length === 0 ? <p className="p-8 text-sm text-muted">No hay proveedores para estos filtros.</p> : <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] border-collapse text-left text-sm">
-              <thead className="bg-pine text-xs uppercase tracking-wide text-white"><tr><th className="px-5 py-4">Proveedor</th><th className="px-5 py-4">País</th><th className="px-5 py-4">Categorías</th><th className="px-5 py-4">Tarifa mensual</th><th className="px-5 py-4">Estado</th><th className="px-5 py-4">Renovación</th><th className="px-5 py-4">Acciones</th></tr></thead>
+            <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
+              <thead className="bg-pine text-xs uppercase tracking-wide text-white"><tr><th className="px-5 py-4">Proveedor</th><th className="px-5 py-4">País</th><th className="px-5 py-4">Categorías</th><th className="px-5 py-4">Tarifa mensual</th><th className="px-5 py-4">Estado</th><th className="px-5 py-4">Renovación</th><th className="px-5 py-4">Actualizado</th><th className="px-5 py-4">Notas</th><th className="px-5 py-4">Acciones</th></tr></thead>
               <tbody className="divide-y divide-line">{suppliers.map((supplier) => <tr key={supplier.id} className={supplier.status === "suspended" ? "bg-slate-50 text-muted" : ""}>
                 <td className="px-5 py-4"><p className="font-semibold text-ink">{supplier.name}</p>{supplier.contact_email && <p className="mt-1 text-xs text-muted">{supplier.contact_email}</p>}</td>
                 <td className="px-5 py-4">{supplier.country === "Spain" ? "España" : "Estados Unidos"}</td>
                 <td className="max-w-64 px-5 py-4">{supplier.categories.map((item) => categories.find(([value]) => value === item)?.[1] ?? item).join(", ")}</td>
                 <td className="px-5 py-4">{editingId === supplier.id ? <div className="flex items-center gap-2"><input aria-label={`Nueva tarifa para ${supplier.name}`} className="w-28 rounded border border-line px-2 py-1" type="number" min="0.01" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} /><button disabled={busy} onClick={() => void saveRate(supplier.id)} className="font-semibold text-pine underline">Guardar</button><button onClick={() => setEditingId(null)} className="text-muted underline">Cancelar</button></div> : <span>{supplier.monthly_rate.toFixed(2)} {supplier.currency} <button onClick={() => { setEditingId(supplier.id); setRate(String(supplier.monthly_rate)); }} className="ml-2 text-xs font-semibold text-pine underline">Editar</button></span>}</td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${supplier.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}>{supplier.status === "active" ? "Activo" : "Suspendido"}</span></td>
-                <td className="px-5 py-4">{supplier.contract_renewal_date || "—"}</td>
+                <td className="px-5 py-4">{supplier.contract_renewal_date ? <span className="flex flex-col items-start gap-1">{supplier.contract_renewal_date}{isRenewalSoon(supplier.contract_renewal_date) && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">Pr&oacute;xima</span>}</span> : "N/D"}</td>
+                <td className="px-5 py-4 text-xs">{formatTimestamp(supplier.updated_at)}</td>
+                <td className="max-w-64 px-5 py-4 text-xs">{supplier.notes || "N/D"}</td>
                 <td className="px-5 py-4"><button disabled={busy} onClick={() => void toggleStatus(supplier)} className="font-semibold text-pine underline">{supplier.status === "active" ? "Suspender" : "Activar"}</button></td>
               </tr>)}</tbody>
             </table>

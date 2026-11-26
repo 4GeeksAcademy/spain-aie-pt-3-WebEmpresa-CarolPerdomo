@@ -66,6 +66,17 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
@@ -111,14 +122,16 @@ class CategoryEnum(str, Enum):
     IT_AND_SOFTWARE = "it_and_software_licenses"
 
 class SupplierBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1)
     country: CountryEnum
     categories: List[CategoryEnum] = Field(..., min_length=1)
-    monthly_rate: float = Field(..., gt=0)
+    monthly_rate: float = Field(..., gt=0, allow_inf_nan=False)
     currency: CurrencyEnum
     status: StatusEnum
     contract_renewal_date: Optional[str] = None
-    contact_email: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
     notes: Optional[str] = None
 
     @field_validator('contract_renewal_date')
@@ -148,7 +161,24 @@ class Supplier(SupplierBase):
     id: int
     updated_at: Optional[datetime] = None
 
+
 class SupplierUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+    monthly_rate: Optional[float] = Field(None, gt=0, allow_inf_nan=False)
+    status: Optional[StatusEnum] = None
+
+class SupplierRateUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    monthly_rate: float = Field(..., gt=0, allow_inf_nan=False)
+
+class SupplierStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+    status: StatusEnum
+
     model_config = ConfigDict(from_attributes=True)
 
     monthly_rate: Optional[float] = Field(None, gt=0)
@@ -224,3 +254,4 @@ class Incident(IncidentCreate):
 class IncidentStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: IncidentStatusEnum
+   main

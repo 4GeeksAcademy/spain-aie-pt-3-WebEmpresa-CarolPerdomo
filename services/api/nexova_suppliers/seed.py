@@ -1,4 +1,4 @@
-from .database import SuppliersDB
+from .database import DB_PATH, SuppliersDB
 from .models import SupplierCreate
 
 SUPPLIERS_SEED = [
@@ -52,7 +52,7 @@ SUPPLIERS_SEED = [
         "currency": "USD",
         "status": "suspended",
         "contact_email": "accounts@greenhouse.io",
-        "notes": "Suspendido tras no renovar. Sergio está evaluando si migrar todo a Workable."
+        "notes": "Suspendido tras no renovar. El equipo evalua la migracion a Workable."
     },
     {
         "name": "Thomas International",
@@ -84,7 +84,7 @@ SUPPLIERS_SEED = [
         "status": "active",
         "contract_renewal_date": "2026-01-15",
         "contact_email": "business@udemy.com",
-        "notes": "Licencias para el equipo interno. Gestionado por Elena Vargas."
+        "notes": "Licencias para el equipo interno. Gestionado por operaciones."
     },
     {
         "name": "Coursera for Teams",
@@ -160,28 +160,21 @@ SUPPLIERS_SEED = [
     }
 ]
 
-def seed_suppliers():
-    db = SuppliersDB()
-    
-    # Verificar si ya existen datos
-    existing = db.get_all_suppliers()
-    if existing:
-        print(f"⚠️  La base de datos ya contiene {len(existing)} registros. Saliendo sin duplicar.")
-        db.close()
-        return
-    
+def seed_suppliers(db_path=DB_PATH):
+    db = SuppliersDB(db_path)
     inserted_count = 0
-    for supplier_data in SUPPLIERS_SEED:
-        try:
+    existing_names = {supplier.get("name") for supplier in db.get_all_suppliers()}
+    try:
+        for supplier_data in SUPPLIERS_SEED:
+            if supplier_data["name"] in existing_names:
+                continue
             supplier = SupplierCreate(**supplier_data)
             db.create_supplier(supplier)
             inserted_count += 1
-            print(f"✅ Insertado: {supplier_data['name']}")
-        except Exception as e:
-            print(f"❌ Error insertando {supplier_data['name']}: {e}")
-    
-    db.close()
-    print(f"\n✨ Seeder completado: {inserted_count} proveedores insertados.")
+            existing_names.add(supplier_data["name"])
+    finally:
+        db.close()
+    print(f"Seeder completado: {inserted_count} proveedores insertados; {len(existing_names)} en total.")
 
 if __name__ == "__main__":
     seed_suppliers()
