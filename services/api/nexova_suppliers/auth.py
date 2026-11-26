@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
 import bcrypt
-from .config import load_project_env
+from .config import get_setting, load_project_env
 
 load_project_env()
 

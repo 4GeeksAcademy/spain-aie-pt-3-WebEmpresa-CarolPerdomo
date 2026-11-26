@@ -12,6 +12,7 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Optional
+from pydantic import ValidationError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -83,13 +84,22 @@ def seed_incidents(csv_path: Path, db_path: Optional[Path] = None) -> dict:
                     if validate_incident_fields(fields):
                         raise ValueError("Los campos transformados no cumplen el modelo de incidencia.")
                     incident = IncidentCreate.model_validate(fields)
+                except (ValueError, ValidationError):
+                    print(f"Fila {row_number} omitida: los campos transformados no cumplen el modelo de incidencia.")
+                    skipped_invalid += 1
+                    continue
+
+                created = None
+                try:
                     created = db.create_incident(incident, created_at=created_at)
                     db.record_incident_import(key, created["id"])
-                    inserted += 1
-                except Exception:
-                    # Do not print row values: the source row contains customer email.
-                    print(f"Fila {row_number} omitida: no se pudo guardar la incidencia.")
-                    skipped_invalid += 1
+                except Exception as error:
+                    if created is not None:
+                        db.rollback_incident_import(key, created["id"])
+                    raise RuntimeError(
+                        "No se pudo guardar una incidencia; se canceló la carga para evitar duplicados."
+                    ) from error
+                inserted += 1
 
         print(
             "Carga finalizada: "
@@ -124,5 +134,5 @@ if __name__ == "__main__":
         print(str(error), file=sys.stderr)
         sys.exit(1)
     except Exception:
-        print("No se pudo completar la carga de incidencias.", file=sys.stderr)
+        print("No se pudo completar la carga de incidencias; revisa el acceso al CSV y a la base de datos.", file=sys.stderr)
         sys.exit(1)

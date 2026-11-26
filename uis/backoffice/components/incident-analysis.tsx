@@ -13,6 +13,19 @@ type Analysis = {
   satisfaction: { scored: number; closed: number; average: number | null; scores: Record<string, number> };
 };
 
+function errorFromPayload(payload: unknown, fallback: string) {
+  if (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string") {
+    return payload.error;
+  }
+  return fallback;
+}
+
+function messageFromCause(cause: unknown, fallback: string) {
+  return cause instanceof Error && !(cause instanceof TypeError) && !(cause instanceof SyntaxError)
+    ? cause.message
+    : fallback;
+}
+
 function Breakdown({ title, values, total }: { title: string; values: Record<string, number>; total: number }) {
   return (
     <section aria-label={title} className="min-w-0 border-t border-line pt-5">
@@ -45,11 +58,14 @@ export function IncidentAnalysis() {
       const data = new FormData();
       data.append("file", file);
       const response = await fetch("/api/incidents/analyze", { method: "POST", body: data });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "No se pudo analizar el archivo.");
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(errorFromPayload(payload, "No se pudo analizar el archivo."));
+      if (!payload || typeof payload !== "object" || Array.isArray(payload) || !("analysis_id" in payload) || typeof payload.analysis_id !== "string") {
+        throw new Error("El servicio devolvió una respuesta no válida. Inténtalo de nuevo.");
+      }
       setResult(payload as Analysis);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudo analizar el archivo.");
+      setError(messageFromCause(reason, "No se pudo analizar el archivo. Inténtalo de nuevo."));
     } finally {
       setLoading(false);
     }
@@ -61,8 +77,8 @@ export function IncidentAnalysis() {
     try {
       const response = await fetch("/api/incidents/results/export", { cache: "no-store", headers: { "If-Match": result.analysis_id } });
       if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(payload.error || "No se pudo descargar el informe.");
+        const payload: unknown = await response.json().catch(() => null);
+        throw new Error(errorFromPayload(payload, "No se pudo descargar el informe."));
       }
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
@@ -71,7 +87,7 @@ export function IncidentAnalysis() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudo descargar el informe.");
+      setError(messageFromCause(reason, "No se pudo descargar el informe. Inténtalo de nuevo."));
     }
   }
 

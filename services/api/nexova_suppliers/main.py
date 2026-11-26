@@ -1,9 +1,14 @@
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from .database import SuppliersDB
 from .routes import suppliers, auth, users, profiles, incidents
 from .routes.suppliers import set_db as set_suppliers_db
 from .dependencies import set_db
+
+logger = logging.getLogger(__name__)
 
 # Crear aplicación FastAPI
 app = FastAPI(
@@ -11,6 +16,15 @@ app = FastAPI(
     description="Complete API for Nexova Solutions with Authentication and Supplier Management",
     version="1.0.0"
 )
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(_request: Request, exc: Exception):
+    logger.error("Unhandled API error (%s)", type(exc).__name__, exc_info=(type(exc), exc, exc.__traceback__))
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Se produjo un error interno. Inténtalo de nuevo más tarde."},
+    )
 
 # CORS configuration
 app.add_middleware(

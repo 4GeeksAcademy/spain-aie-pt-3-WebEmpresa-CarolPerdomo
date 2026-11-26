@@ -36,6 +36,8 @@ def deliver_password_reset_email(email: str, reset_url: str) -> None:
     except EmailDeliveryError as exc:
         # The provider detail is sanitized; never log the user's address, token, or API key.
         logger.warning("Password reset email delivery failed: %s", exc)
+    except Exception as error:
+        logger.error("Password reset email delivery failed (%s)", type(error).__name__)
 
 @router.post("/register", response_model=TokenResponse)
 def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
@@ -75,19 +77,31 @@ def register(user_data: UserCreate, db: SuppliersDB = Depends(get_db)):
         )
     )
 
-
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 def forgot_password(payload: ForgotPasswordRequest, http_request: Request, background_tasks: BackgroundTasks, db: SuppliersDB = Depends(get_db)):
     """Send a single-use reset link without revealing whether the email exists."""
-    user = db.get_user_by_email(payload.email)
-    db.record_password_audit("reset_requested", get_client_ip(http_request), user['id'] if user else None)
+    try:
+        user = db.get_user_by_email(payload.email)
+    except Exception as error:
+        logger.error("Password reset lookup failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="No se pudo procesar la solicitud. Inténtalo más tarde.") from None
+
+    try:
+        db.record_password_audit("reset_requested", get_client_ip(http_request), user['id'] if user else None)
+    except Exception as error:
+        logger.error("Password reset audit write failed (%s)", type(error).__name__)
+
     if user:
-        token = secrets.token_urlsafe(32)
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
-        db.create_password_reset_token(user['id'], hashlib.sha256(token.encode()).hexdigest(), expires_at)
-        reset_page = os.getenv("PASSWORD_RESET_URL", "http://localhost:3001/reset-password")
-        reset_url = f"{reset_page}?token={quote(token)}"
-        background_tasks.add_task(deliver_password_reset_email, user['email'], reset_url)
+        try:
+            token = secrets.token_urlsafe(32)
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+            db.create_password_reset_token(user['id'], hashlib.sha256(token.encode()).hexdigest(), expires_at)
+            reset_page = os.getenv("PASSWORD_RESET_URL", "http://localhost:3001/reset-password")
+            reset_url = f"{reset_page}?token={quote(token)}"
+            background_tasks.add_task(deliver_password_reset_email, user['email'], reset_url)
+        except Exception as error:
+            # Keep the same response for known and unknown addresses.
+            logger.error("Password reset could not be issued (%s)", type(error).__name__)
     return {"message": GENERIC_RESET_MESSAGE}
 
 
@@ -165,74 +179,5 @@ def login(credentials: LoginRequest, db: SuppliersDB = Depends(get_db)):
         email=user['email'],
         role=user.get('role', 'user'),
         created_at=user['created_at']
-)
-    )
-
-
-@router.post("/forgot-password", status_code=status.HTTP_200_OK)
-def forgot_password(
-    request: ForgotPasswordRequest,
-    db: SuppliersDB = Depends(get_db),
-):
-    """Always respond with the same confirmation to prevent email enumeration."""
-    try:
-        user = db.get_user_by_email(str(request.email))
-        if user:
-            token, token_id, expires_at = AuthService.create_password_reset_token(
-                user['id'], user['email']
-            )
-            db.create_password_reset_token(user['id'], token_id, expires_at)
-            base_url = get_setting("FRONTEND_BASE_URL", "http://localhost:3001").rstrip("/")
-            reset_url = f"{base_url}/reset-password?token={quote(token, safe='')}"
-            send_password_reset_email(user['email'], reset_url)
-    except Exception:
-        # Never log the address, reset token, provider response, or API key.
-        logger.warning("Password reset email could not be issued")
-
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={"message": RESET_REQUEST_MESSAGE},
-    )
-
-
-@router.post("/reset-password", status_code=status.HTTP_200_OK)
-def reset_password(
-    request: ResetPasswordRequest,
-    db: SuppliersDB = Depends(get_db),
-):
-    claims = AuthService.decode_password_reset_token(request.token)
-    if not claims:
-        raise HTTPException(status_code=400, detail=INVALID_RESET_MESSAGE)
-
-    user = db.get_user_by_id(claims.get('user_id'))
-    if not user or user.get('email') != claims.get('email'):
-        raise HTTPException(status_code=400, detail=INVALID_RESET_MESSAGE)
-
-    if not db.consume_password_reset_token(
-        user['id'], claims['jti'], int(claims['exp'])
-    ):
-        raise HTTPException(status_code=400, detail=INVALID_RESET_MESSAGE)
-
-    if not db.update_password(user['id'], request.new_password):
-        raise HTTPException(status_code=400, detail=INVALID_RESET_MESSAGE)
-
-    return {"message": "Tu contraseña se actualizó correctamente."}
-
-
-@router.post("/change-password", status_code=status.HTTP_200_OK)
-def change_password(
-    request: ChangePasswordRequest,
-    user_payload: dict = Depends(get_current_user),
-    db: SuppliersDB = Depends(get_db),
-):
-    user = db.get_user_by_id(user_payload['user_id'])
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="La sesión ya no es válida.",
         )
-    if not AuthService.verify_password(request.current_password, user['password']):
-        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta.")
-
-    db.update_password(user['id'], request.new_password)
-    return {"message": "Tu contraseña se actualizó correctamente."}
+    )

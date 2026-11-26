@@ -64,6 +64,8 @@ uis/backoffice/lib/*
 !uis/backoffice/lib/supplier-proxy.ts
 !uis/backoffice/lib/incident-proxy.ts
 !uis/backoffice/lib/incidents.ts
+!uis/backoffice/lib/request-json.ts
 !uis/talent-pipeline-tracker/lib/
 uis/talent-pipeline-tracker/lib/*
 !uis/talent-pipeline-tracker/lib/auth-client.ts
+!uis/talent-pipeline-tracker/lib/request-json.ts

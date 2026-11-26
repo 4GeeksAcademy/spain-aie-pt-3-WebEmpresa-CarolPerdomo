@@ -2,6 +2,12 @@
 import os
 import re
 from pathlib import Path
+from typing import Optional
+
+
+def get_setting(name: str, default: Optional[str] = None) -> Optional[str]:
+    """Read a setting from the environment after the local .env is loaded."""
+    return os.getenv(name, default)
 
 
 def load_project_env() -> None:

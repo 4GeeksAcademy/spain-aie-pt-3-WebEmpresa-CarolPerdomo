@@ -254,4 +254,3 @@ class Incident(IncidentCreate):
 class IncidentStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: IncidentStatusEnum
-   main

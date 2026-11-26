@@ -230,3 +230,12 @@ Update this file after completing a meaningful implementation or verification st
 - Backoffice ESLint and TypeScript checks pass. The production Next build succeeds when the existing Google Fonts import can access the network.
 - Completed browser acceptance against an isolated local database: login, empty summary, branch-origin highlighting and helper text, incident creation, list display, `open` -> `in_progress` -> `resolved` transitions, and summary totals by status, category, origin, and branch. The browser test used fictional data and its local database was removed afterward.
 
+## Error Handling Audit (2026-11-26)
+
+- Fixed a stray line in `nexova_suppliers/models.py` that prevented API test collection and added the missing `get_setting` helper used by authentication configuration.
+- Updated password-reset tests to verify random one-time tokens are stored only as hashes, and updated the Resend test to match the documented `RESEND_API_KEY`/`EMAIL_FROM` configuration and the module's `urlopen` seam.
+- Changed the supplier-seed test to use an isolated, uniquely named database under `services/api/data`, avoiding inaccessible Windows temporary folders.
+- Verification: the five API test files pass (13 tests); Python syntax compilation, ESLint, and TypeScript checks pass. `git diff --check` passes.
+- Both Next.js production builds compile the app, then stop at the type-check worker with `spawn EPERM`. Browser acceptance remains pending because the computer-use browser host was unavailable.
+- Running pytest against the entire `tests/` directory still encounters pre-existing inaccessible `tests/tmp*` directories during collection; explicitly listing the five test modules avoids those directories and runs the full suite.
+
