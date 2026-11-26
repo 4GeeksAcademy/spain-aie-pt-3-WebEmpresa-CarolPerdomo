@@ -13,6 +13,9 @@
 - Root TypeScript collection/search/transformation/validation utilities and npm typecheck/build scripts are present under `src/`.
 - `uis/website/` is an independent Next.js public website with a responsive corporate homepage, reusable header/service/section/footer components, organization JSON-LD, company services, and contact details.
 - `uis/backoffice/` is a separate Next.js app and layout with visible company KPIs, department signals, department filtering, text search, and a computed support-SLA gap. It labels its figures as briefing reference data, not live metrics.
+- Both frontend apps have per-app READMEs and run/build/lint scripts.
+- `scripts/analyze.py` analyzes incident CSV files, reports validation failures and aggregate metrics without exposing customer emails, and optionally exports one metric per row.
+- `services/api/` shares that analysis with a local HTTP API, and `uis/backoffice/` provides an incident upload, summary and CSV export through server-side proxy routes. The latest aggregate report is stored in process memory only.
 - `uis/backoffice/app/suppliers/page.tsx` provides the supplier directory with country/category filters, supplier creation, rate edits, and status changes. Its Next.js API routes forward the localStorage JWT as a Bearer token; the API listing adds TinyDB document IDs to every supplier.
 - `PUT /users/{user_id}` now updates account email and role with ownership/admin checks. Profile fields remain under `/profiles`; duplicate emails return 409. Added persistence and permission coverage in `services/api/tests/test_user_updates.py`.
 - User roles are `admin`, `manager`, and `user`. Admins can assign roles when creating users and changing roles; new users default to `user`. `GET /users/` is admin-only and returns password-free results. ASGI-level tests cover login, 401/403 behavior, profiles, user CRUD, and protected supplier access.
@@ -22,6 +25,15 @@
 
 ## Internal Authentication Verification
 
+- `npm run build --prefix uis/website` — passed.
+- `npm run build --prefix uis/backoffice` — passed.
+- `npm run lint --prefix uis/website` — passed.
+- `npm run lint --prefix uis/backoffice` — passed.
+- Local HTTP smoke tests for both `/` routes — returned 200 and contained the expected Nexova content.
+- Website Organization JSON-LD — parsed successfully; canonical URL and both office addresses were present.
+- `python -m unittest discover -s scripts -p 'test_analyze.py' -v` — passed; synthetic incident data reproduces the briefing's aggregate values and exercises export and privacy checks.
+- `python scripts/analyze.py incidents-nexova.csv` — verified against the provided CSV: all totals, invalid-record reasons, category and status distributions, and satisfaction values match the incident briefing.
+- Backoffice lint and production build passed in a temporary dependency installation. HTTP checks through the backoffice proxy verified the briefing metrics, CSV export, invalid and empty uploads, and rejection of an outdated export.
 - `npm run lint` and an isolated TypeScript check pass for `uis/backoffice/`.
 - `npm run build` also passes for `uis/backoffice/` when run with access to Google Fonts.
 - Installed tracker dependencies from its existing lockfile; its lint and production build both pass. `npm ci` reported 12 dependency audit findings (7 moderate, 4 high, 1 critical), but a subsequent `npm audit --json` returned zero vulnerabilities. The lockfile was not modified and no automatic fixes were applied. Next.js also warns that multiple lockfiles make its inferred Turbopack root ambiguous.
@@ -135,6 +147,7 @@
 - The original root landing page CTA leads to that company-services form. The new `uis/website/` has a separate talent contact anchor, but currently uses email rather than a structured candidate form.
 - The current simulated success copy and validation rules belong to the company inquiry flow, not the candidate flow.
 - The original root landing page JSON-LD has a placeholder URL (`https://example.com`). The new `uis/website/` includes the Nexova organization fields from the context.
+- Executive dashboard metrics are static briefing facts. The incident API is a separate local service without authentication or durable storage; it is not production-ready or connected to an external system.
 - Backend is now available but not yet wired to frontends. Candidate registration form needs to call POST /auth/register and manage JWT tokens.
 - A public deployment and PageSpeed Insights result have not been verified. Do not claim the performance acceptance threshold is met.
 
