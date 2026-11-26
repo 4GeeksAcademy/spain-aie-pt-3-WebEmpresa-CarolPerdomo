@@ -168,3 +168,12 @@
 
 Update this file after completing a meaningful implementation or verification step. Record only verified outcomes; keep unfinished or externally dependent checks explicitly marked as pending.
 
+## Centralized Incident Manager (New Milestone)
+
+- Added the `Incident` model fields, allowed values, UTC timestamps, TinyDB persistence, lifecycle transition rules, and JWT-protected `/api/incidents` endpoints for create, list/filter, detail, status update, and summary.
+- Added the backoffice registration, filtered incident list with status actions, summary view, navigation links, and authenticated Next.js API proxies.
+- Added shared CSV validation/mapping helpers and an idempotent `scripts/seed_incidents.py`. It reports invalid rows without printing row contents and excludes customer email from incident records and import tracking.
+- The historical CSV was loaded into a temporary TinyDB twice: first run inserted 96 valid records and skipped 4 invalid rows; the second inserted 0 and skipped the same 96 as duplicates. Summary counts matched the briefing: statuses 27/56/13 and categories 49/35/12. Console output contained no customer email values.
+- Added three API lifecycle, validation, filtering, and empty-summary tests; all pass. Backoffice ESLint and TypeScript checks pass. The broader existing API suite could not complete because its `TemporaryDirectory` fixtures hit Windows access-denied errors in this environment; no application assertion failed in that attempt.
+- Updated API and script documentation. A production Next build and browser-based acceptance remain pending.
+

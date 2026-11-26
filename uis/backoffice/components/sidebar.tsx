@@ -5,6 +5,8 @@ const navigation = [
   { label: "Resumen", href: "#resumen" },
   { label: "Operaciones", href: "#operaciones" },
   { label: "Prioridades", href: "#prioridades" },
+  { label: "Incidencias", href: "/incidents" },
+  { label: "Resumen incidencias", href: "/incidents/summary" },
   { label: "Proveedores", href: "/suppliers" },
   { label: "Mi perfil", href: "/account/profile" },
 ];

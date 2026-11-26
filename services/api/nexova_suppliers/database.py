@@ -1,18 +1,23 @@
 from tinydb import TinyDB, Query
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import RLock
 from typing import Optional
-from .models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
-from .auth import AuthService
+from .models import (
+    Supplier, SupplierCreate, CategoryEnum, StatusEnum,
+    IncidentCreate, IncidentStatusEnum, IncidentCategoryEnum,
+    IncidentOriginEnum, IncidentBranchEnum,
+)
 
-DB_PATH = Path("data") / "suppliers.json"
+DB_PATH = Path(__file__).resolve().parents[1] / "data" / "suppliers.json"
 DB_PATH.parent.mkdir(exist_ok=True)
 
 class SuppliersDB:
     def __init__(self, db_path=DB_PATH):
         self.db = TinyDB(str(db_path))
         self.suppliers_table = self.db.table('suppliers')
+        self.incidents_table = self.db.table('incidents')
+        self.incident_imports_table = self.db.table('incident_imports')
         self.users_table = self.db.table('users')
         self.profiles_table = self.db.table('profiles')
         self.password_reset_tokens_table = self.db.table('password_reset_tokens')
@@ -35,6 +40,8 @@ class SuppliersDB:
         return result_or_list
     
     def create_user(self, email: str, password: str, role: str = "user"):
+        from .auth import AuthService
+
         # Check if email already exists
         User = Query()
         if self.users_table.search(User.email == email):
@@ -242,6 +249,68 @@ class SuppliersDB:
 
     def delete_supplier(self, supplier_id: int) -> bool:
         return bool(self.suppliers_table.remove(doc_ids=[supplier_id]))
+
+    # ============ Incident Operations ============
+
+    @staticmethod
+    def _utc_now() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    def create_incident(self, incident_data: IncidentCreate, created_at: Optional[str] = None) -> dict:
+        now = created_at or self._utc_now()
+        new_incident = incident_data.model_dump(mode="json")
+        new_incident.update({"created_at": now, "updated_at": now})
+        doc_id = self.incidents_table.insert(new_incident)
+        return {**new_incident, "id": doc_id}
+
+    def get_incident_by_id(self, incident_id: int) -> Optional[dict]:
+        incident = self.incidents_table.get(doc_id=incident_id)
+        return {**incident, "id": incident.doc_id} if incident else None
+
+    def get_all_incidents(
+        self,
+        status: Optional[str] = None,
+        origin: Optional[str] = None,
+        branch: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> list:
+        incidents = [
+            {**incident, "id": incident.doc_id}
+            for incident in self.incidents_table.all()
+        ]
+        filters = {"status": status, "origin": origin, "branch": branch, "category": category}
+        return [item for item in incidents if all(value is None or item.get(key) == value for key, value in filters.items())]
+
+    def update_incident_status(self, incident_id: int, status: str) -> Optional[dict]:
+        incident = self.get_incident_by_id(incident_id)
+        if not incident:
+            return None
+        self.incidents_table.update(
+            {"status": status, "updated_at": self._utc_now()},
+            doc_ids=[incident_id],
+        )
+        return self.get_incident_by_id(incident_id)
+
+    def get_incident_summary(self) -> dict:
+        incidents = self.incidents_table.all()
+        def count_by(field: str, allowed_values) -> dict:
+            return {
+                value.value: sum(1 for incident in incidents if incident.get(field) == value.value)
+                for value in allowed_values
+            }
+        return {
+            "total": len(incidents),
+            "by_status": count_by("status", IncidentStatusEnum),
+            "by_category": count_by("category", IncidentCategoryEnum),
+            "by_origin": count_by("origin", IncidentOriginEnum),
+            "by_branch": count_by("branch", IncidentBranchEnum),
+        }
+
+    def has_incident_import(self, source_key: str) -> bool:
+        return self.incident_imports_table.contains(Query().source_key == source_key)
+
+    def record_incident_import(self, source_key: str, incident_id: int) -> None:
+        self.incident_imports_table.insert({"source_key": source_key, "incident_id": incident_id})
 
     def close(self):
         self.db.close()

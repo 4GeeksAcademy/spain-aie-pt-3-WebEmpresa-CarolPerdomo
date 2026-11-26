@@ -1,7 +1,14 @@
-from pydantic import BaseModel, ConfigDict, Field, validator, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, validator, EmailStr, field_validator
 from typing import Optional, List
 from enum import Enum
 from datetime import datetime
+from nexova_shared.incident_csv import (
+    INCIDENT_BRANCHES,
+    INCIDENT_CATEGORIES,
+    INCIDENT_ORIGINS,
+    INCIDENT_STATUSES,
+    validate_incident_field,
+)
 
 # ============ Auth Models ============
 
@@ -151,3 +158,74 @@ class SupplierUpdate(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ============ Incident Management Models ============
+
+class IncidentStatusEnum(str, Enum):
+    OPEN = INCIDENT_STATUSES[0]
+    IN_PROGRESS = INCIDENT_STATUSES[1]
+    RESOLVED = INCIDENT_STATUSES[2]
+    DISCARDED = INCIDENT_STATUSES[3]
+
+
+class IncidentOriginEnum(str, Enum):
+    CUSTOMER = INCIDENT_ORIGINS[0]
+    BRANCH = INCIDENT_ORIGINS[1]
+    INTERNAL = INCIDENT_ORIGINS[2]
+
+
+class IncidentBranchEnum(str, Enum):
+    CENTRAL = INCIDENT_BRANCHES[0]
+    VALENCIA_OPERATIONS = INCIDENT_BRANCHES[1]
+    MIAMI_OFFICE = INCIDENT_BRANCHES[2]
+    REMOTE = INCIDENT_BRANCHES[3]
+
+
+class IncidentCategoryEnum(str, Enum):
+    TECHNICAL_FAILURE = INCIDENT_CATEGORIES[0]
+    PROCESS_ERROR = INCIDENT_CATEGORIES[1]
+    CLIENT_COMPLAINT = INCIDENT_CATEGORIES[2]
+    CANDIDATE_ISSUE = INCIDENT_CATEGORIES[3]
+    STAFF_ISSUE = INCIDENT_CATEGORIES[4]
+    SLA_BREACH = INCIDENT_CATEGORIES[5]
+    DATA_QUALITY = INCIDENT_CATEGORIES[6]
+    OTHER = INCIDENT_CATEGORIES[7]
+
+
+class IncidentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(..., min_length=1, max_length=120)
+    description: str = Field(..., min_length=1)
+    category: IncidentCategoryEnum
+    status: IncidentStatusEnum
+    origin: IncidentOriginEnum
+    branch: IncidentBranchEnum
+
+    @field_validator("title")
+    @classmethod
+    def require_title(cls, value):
+        message = validate_incident_field("title", value)
+        if message:
+            raise ValueError(message)
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def require_description(cls, value):
+        message = validate_incident_field("description", value)
+        if message:
+            raise ValueError(message)
+        return value
+
+
+class Incident(IncidentCreate):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class IncidentStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: IncidentStatusEnum

@@ -287,6 +287,18 @@ Part of Nexova Solutions projects. See root LICENSE file.
 
 ## API actualizada - Noviembre 2026
 
+## Gestión centralizada de incidencias
+
+La API expone endpoints protegidos por JWT bajo `/api/incidents` y persiste las incidencias en la tabla `incidents` de TinyDB. El identificador y las fechas UTC de creación y actualización los genera el servicio. Los valores de categoría, estado, origen y sede están restringidos a los definidos en `nexova-BRIEFING.es.md`.
+
+- `POST /api/incidents`: crea una incidencia y responde `400` con un mensaje claro si faltan campos o hay valores no permitidos.
+- `GET /api/incidents`: lista incidencias; admite filtros `status`, `origin`, `branch` y `category`.
+- `GET /api/incidents/{id}`: devuelve el detalle o `404` si no existe.
+- `PATCH /api/incidents/{id}/status`: valida las transiciones permitidas del ciclo de vida.
+- `GET /api/incidents/summary`: devuelve total y conteos por estado, categoría, origen y sede, incluidos los ceros.
+
+Carga histórica (desde la raíz del repositorio): `python scripts/seed_incidents.py`. El script valida el CSV, transforma los campos según el briefing, omite filas inválidas y duplicados, y no almacena ni imprime direcciones de email.
+
 ### Modelos de datos
 
 Los datos de autenticación se almacenan en `User`:

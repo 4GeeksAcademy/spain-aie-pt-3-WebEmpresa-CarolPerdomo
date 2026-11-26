@@ -12,6 +12,7 @@
 - `uis/website/app/page.tsx` renders the Nexova public site using reusable components. `uis/backoffice/app/page.tsx` renders an internal executive dashboard; its company and department figures are static reference data from the briefing, not a live data connection.
 - The current form is client-side only: submission is simulated in JavaScript; no backend persistence or email delivery is configured.
 - The FastAPI authentication service under `/services/api` is integrated with the internal backoffice and talent-pipeline apps through server-side API routes. The public `uis/website/` candidate-registration flow remains a separate client-side experience and is not connected to persistence.
+- The Nexova API includes incident-management routes under `/api/incidents`, stored in the API's TinyDB `incidents` table. The backoffice includes incident registration, filtered listing with lifecycle transitions, and aggregate summary screens. `scripts/seed_incidents.py` imports the legacy CSV using shared Python validation helpers; customer emails are neither persisted nor printed. The seed counts, API incident checks, ESLint, and TypeScript check pass; a production Next build and browser-based acceptance remain pending.
 
 ## Established Constraints
 
