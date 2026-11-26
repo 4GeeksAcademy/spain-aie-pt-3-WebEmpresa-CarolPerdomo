@@ -176,3 +176,375 @@ incidents-analysis/nexova-BRIEFING.md
 
 _Documento interno — 4Geeks Academy · AI Engineering Track_  
 _Para uso exclusivo en la generación de proyectos del programa_
+
+---
+
+# BRIEFING — Directorio de Proveedores · Nexova
+
+_These instructions are also available in [English](./nexova-BRIEFING.en.md)._
+
+> **Milestone:** 09 — Lightweight Storage API  
+> **Ruta en el repositorio:** `09-lightweight-storage/nexova-BRIEFING.md`
+
+---
+
+## Tu empresa
+
+Eres parte del equipo de AI Engineering de **Nexova**, una consultora de recursos humanos y adquisición de talento con sede en Valencia (España) y oficina en Miami (Florida). Tu tech lead es **Sergio Molina**, CTO, y el proyecto ha sido solicitado por **Patricia Solís**, HR Manager, en coordinación con el área de operaciones.
+
+Nexova contrata servicios externos de forma recurrente: plataformas de publicación de ofertas de empleo, herramientas de selección, proveedores de formación, software corporativo y servicios de outsourcing. Hasta ahora, este registro vive en una hoja de cálculo que Patricia actualiza manualmente y comparte por email cada vez que hay un cambio. El resultado son múltiples versiones circulando en paralelo sin que nadie sepa cuál es la vigente. Este proyecto crea el registro oficial y único.
+
+---
+
+## Modelo de proveedor
+
+Cada proveedor en el directorio de Nexova tiene la siguiente estructura:
+
+| Campo                   | Tipo                                  | Descripción                                             |
+| ----------------------- | ------------------------------------- | ------------------------------------------------------- |
+| `name`                  | string, requerido                     | Nombre comercial del proveedor o plataforma             |
+| `country`               | string, requerido                     | País del contrato activo: `"Spain"` o `"USA"`           |
+| `categories`            | lista de strings, requerido, mínimo 1 | Tipo de servicio que provee (ver lista válida)          |
+| `monthly_rate`          | float, requerido, > 0                 | Coste mensual vigente en la moneda del contrato         |
+| `currency`              | string, requerido                     | `"EUR"` para Spain, `"USD"` para USA                    |
+| `updated_at`            | datetime, generado por el sistema     | Timestamp de la última actualización de tarifa          |
+| `status`                | string, requerido                     | `"active"` o `"suspended"`                              |
+| `contract_renewal_date` | string, opcional                      | Fecha de renovación del contrato (formato `YYYY-MM-DD`) |
+| `contact_email`         | string, opcional                      | Email del account manager del proveedor                 |
+| `notes`                 | string, opcional                      | Observaciones internas                                  |
+
+### Categorías válidas
+
+```python
+VALID_CATEGORIES = [
+    "job_boards",
+    "ats_software",
+    "assessment_tools",
+    "training_platforms",
+    "payroll_and_hr_software",
+    "video_interview",
+    "background_check",
+    "office_and_facilities",
+    "it_and_software_licenses"
+]
+```
+
+### Estados válidos
+
+```python
+VALID_STATUSES = ["active", "suspended"]
+```
+
+---
+
+## Datos iniciales del seeder
+
+El seeder debe cargar exactamente los siguientes proveedores, que representan el estado actual del directorio de Patricia.
+
+```python
+SUPPLIERS_SEED = [
+    {
+        "name": "LinkedIn Talent Solutions",
+        "country": "Spain",
+        "categories": ["job_boards"],
+        "monthly_rate": 1200.0,
+        "currency": "EUR",
+        "status": "active",
+        "contract_renewal_date": "2025-03-31",
+        "contact_email": "account@linkedin.com",
+        "notes": "Licencia corporativa para publicación de ofertas y búsqueda de candidatos."
+    },
+    {
+        "name": "InfoJobs Premium",
+        "country": "Spain",
+        "categories": ["job_boards"],
+        "monthly_rate": 490.0,
+        "currency": "EUR",
+        "status": "active",
+        "contract_renewal_date": "2025-06-30",
+        "contact_email": "empresas@infojobs.net"
+    },
+    {
+        "name": "Indeed Sponsored",
+        "country": "USA",
+        "categories": ["job_boards"],
+        "monthly_rate": 850.0,
+        "currency": "USD",
+        "status": "active",
+        "contact_email": "sales@indeed.com",
+        "notes": "Campañas de pago por clic para perfiles de customer support en Miami."
+    },
+    {
+        "name": "Workable",
+        "country": "Spain",
+        "categories": ["ats_software"],
+        "monthly_rate": 299.0,
+        "currency": "EUR",
+        "status": "active",
+        "contract_renewal_date": "2025-09-15",
+        "contact_email": "support@workable.com",
+        "notes": "ATS principal para el equipo de selección de Valencia."
+    },
+    {
+        "name": "Greenhouse",
+        "country": "USA",
+        "categories": ["ats_software"],
+        "monthly_rate": 620.0,
+        "currency": "USD",
+        "status": "suspended",
+        "contact_email": "accounts@greenhouse.io",
+        "notes": "Suspendido tras no renovar. Sergio está evaluando si migrar todo a Workable."
+    },
+    {
+        "name": "Thomas International",
+        "country": "Spain",
+        "categories": ["assessment_tools"],
+        "monthly_rate": 380.0,
+        "currency": "EUR",
+        "status": "active",
+        "contract_renewal_date": "2025-12-01",
+        "contact_email": "clientes@thomas.es",
+        "notes": "Tests de personalidad y aptitud para procesos de mandos intermedios."
+    },
+    {
+        "name": "HireVue",
+        "country": "USA",
+        "categories": ["video_interview"],
+        "monthly_rate": 540.0,
+        "currency": "USD",
+        "status": "active",
+        "contract_renewal_date": "2025-08-31",
+        "contact_email": "support@hirevue.com"
+    },
+    {
+        "name": "Udemy Business",
+        "country": "Spain",
+        "categories": ["training_platforms"],
+        "monthly_rate": 420.0,
+        "currency": "EUR",
+        "status": "active",
+        "contract_renewal_date": "2026-01-15",
+        "contact_email": "business@udemy.com",
+        "notes": "Licencias para el equipo interno. Gestionado por Elena Vargas."
+    },
+    {
+        "name": "Coursera for Teams",
+        "country": "USA",
+        "categories": ["training_platforms"],
+        "monthly_rate": 399.0,
+        "currency": "USD",
+        "status": "suspended",
+        "contact_email": "teams@coursera.com",
+        "notes": "Suspendido por bajo uso. Revisar antes de Q4."
+    },
+    {
+        "name": "Sage HR",
+        "country": "Spain",
+        "categories": ["payroll_and_hr_software"],
+        "monthly_rate": 310.0,
+        "currency": "EUR",
+        "status": "active",
+        "contract_renewal_date": "2025-10-01",
+        "contact_email": "soporte@sage.com",
+        "notes": "Software de nóminas y gestión de personal para la sede de Valencia."
+    },
+    {
+        "name": "Gusto",
+        "country": "USA",
+        "categories": ["payroll_and_hr_software"],
+        "monthly_rate": 280.0,
+        "currency": "USD",
+        "status": "active",
+        "contact_email": "support@gusto.com",
+        "notes": "Gestión de nóminas para los empleados de la oficina de Miami."
+    },
+    {
+        "name": "Checkr",
+        "country": "USA",
+        "categories": ["background_check"],
+        "monthly_rate": 195.0,
+        "currency": "USD",
+        "status": "active",
+        "contract_renewal_date": "2025-11-30",
+        "contact_email": "sales@checkr.com"
+    },
+    {
+        "name": "Microsoft 365 Business",
+        "country": "Spain",
+        "categories": ["it_and_software_licenses"],
+        "monthly_rate": 760.0,
+        "currency": "EUR",
+        "status": "active",
+        "contact_email": "enterprise@microsoft.com",
+        "notes": "Licencias para toda la plantilla de Valencia y Miami."
+    },
+    {
+        "name": "Regus Valencia",
+        "country": "Spain",
+        "categories": ["office_and_facilities"],
+        "monthly_rate": 2400.0,
+        "currency": "EUR",
+        "status": "active",
+        "contract_renewal_date": "2025-07-01",
+        "contact_email": "valencia@regus.com",
+        "notes": "Alquiler de la oficina principal en Valencia. Incluye sala de reuniones."
+    },
+    {
+        "name": "WeWork Miami",
+        "country": "USA",
+        "categories": ["office_and_facilities"],
+        "monthly_rate": 3100.0,
+        "currency": "USD",
+        "status": "active",
+        "contract_renewal_date": "2025-09-30",
+        "contact_email": "miami@wework.com"
+    }
+]
+```
+
+---
+
+## Restricciones de negocio
+
+- **Moneda por país:** Un proveedor de `"Spain"` debe tener `currency = "EUR"`. Un proveedor de `"USA"` debe tener `currency = "USD"`. La API debe rechazar combinaciones inconsistentes.
+- **Trazabilidad de tarifas:** Cada actualización de `monthly_rate` debe registrar el `updated_at` automáticamente. Patricia usa este dato para justificar variaciones de presupuesto ante dirección.
+- **Renovaciones próximas:** El campo `contract_renewal_date` es opcional pero relevante — los proveedores con renovación en los próximos 60 días deben destacarse visualmente en el frontend.
+- **Suspensión controlada:** Los proveedores suspendidos no se eliminan. Permanecen en el directorio con estado `"suspended"` para mantener el historial de relaciones comerciales.
+
+---
+
+## Lo que verá Patricia en el frontend
+
+La página del directorio debe permitirle a Patricia:
+
+1. Ver todos los proveedores agrupados o filtrables por país (Spain / USA).
+2. Filtrar por categoría para responder preguntas como "¿qué herramientas de ATS tenemos activas?".
+3. Distinguir de un vistazo los proveedores activos de los suspendidos.
+4. Registrar un proveedor nuevo desde un formulario.
+5. Actualizar la tarifa mensual de un proveedor y ver el cambio reflejado inmediatamente.
+6. Activar o suspender un proveedor con un control visible en cada fila.
+
+---
+
+_Documento interno — 4Geeks Academy · AI Engineering Track_
+
+---
+
+# BRIEFING — Gestor de Incidencias Centralizado · Nexova
+
+_Hito: integración de un gestor centralizado de incidencias en la plataforma interna._
+
+## Empresa y objetivo
+
+Nexova es una consultora de recursos humanos y adquisición de talento con 120 empleados, sede en Valencia y oficina en Miami. Sus líneas de negocio incluyen headhunting, outsourcing de equipos de soporte al cliente y formación corporativa. El gestor debe registrar incidencias técnicas y operativas, incluidas quejas de clientes, errores en selección y problemas del equipo de soporte externalizado.
+
+## Usuarios y necesidades
+
+- **Sergio Molina (CTO):** necesita una vista central de problemas técnicos y operativos que hoy llegan por email, Slack o comunicación verbal, para medir y mejorar los tiempos de resolución.
+- **Roberto Díaz (Customer Support Lead):** coordina 30 agentes que atienden incidencias de clientes. El equipo usa un helpdesk legado y no tiene una base de conocimiento centralizada.
+- **Laura Mendoza (CEO):** necesita saber cuántas incidencias críticas siguen abiertas, de qué oficina proceden y cuánto tiempo llevan sin resolverse.
+
+## Oficinas
+
+El campo `branch` acepta exactamente estos valores:
+
+| Valor | Nombre para mostrar |
+| --- | --- |
+| `central` | Central — sede Valencia |
+| `valencia_operations` | Valencia — Operaciones |
+| `miami_office` | Miami Office |
+| `remote` | Remoto (empleado sin sede fija) |
+
+Usa `central` si la incidencia no corresponde a una oficina concreta, por ejemplo, reportes internos de dirección o quejas de clientes sin sede asociada. `central` representa la sede central de Valencia; no crees otro valor para headquarters. Mantén `remote` visible y diferenciado de `central` y `valencia_operations`.
+
+## Categorías
+
+El campo `category` acepta exactamente uno de estos valores:
+
+| Valor | Descripción |
+| --- | --- |
+| `technical_failure` | Fallo de sistema o herramienta tecnológica, como ATS, HubSpot, Zendesk o infraestructura |
+| `process_error` | Error en un proceso operativo: selección, incorporación, formación o facturación |
+| `client_complaint` | Queja o reclamación de un cliente corporativo sobre el servicio |
+| `candidate_issue` | Problema reportado por o relacionado con un candidato en selección |
+| `staff_issue` | Incidencia interna de RR. HH.: ausencia, conflicto, accidente o baja |
+| `sla_breach` | Incumplimiento del SLA comprometido con un cliente |
+| `data_quality` | Error o inconsistencia en datos de candidatos, clientes o reportes |
+| `other` | Incidencia que no encaja en las categorías anteriores |
+
+## Estados y ciclo de vida
+
+| Estado | Significado |
+| --- | --- |
+| `open` | Incidencia registrada, aún sin responsable asignado |
+| `in_progress` | Asignada a un equipo o persona y en gestión activa |
+| `resolved` | Resuelta y confirmada por quien la reportó o por el responsable |
+| `discarded` | Registrada por error, duplicada o fuera de alcance |
+
+Transiciones válidas: `open` → `in_progress`, `open` → `discarded`, `in_progress` → `resolved` y `in_progress` → `discarded`. `resolved` y `discarded` son estados finales.
+
+## Orígenes
+
+| Valor | Cuándo se usa |
+| --- | --- |
+| `customer` | Reportada por un cliente corporativo que contrata servicios de Nexova |
+| `branch` | Reportada por personal de una oficina de Nexova |
+| `internal` | Detectada internamente por tecnología, operaciones o dirección |
+
+## Carga histórica desde CSV
+
+El CSV `incidents-nexova.csv`, del proyecto `incidents-file-analyzer` y ubicado en `content/contexts/incidents-file-analysis/`, contiene incidencias del helpdesk de soporte al cliente. Todas corresponden a clientes corporativos (`origin: "customer"`). El esquema del analizador usa campos, estados y categorías distintos: no insertes sus filas directamente. Reutiliza su lógica de validación y aplica las transformaciones descritas aquí antes de insertar. Descarta y reporta en consola los registros que no pasen la validación o no se puedan mapear.
+
+Para idempotencia, identifica registros con `ticket_id`; si falta, usa la combinación `title + created_at`.
+
+### Mapeo de campos
+
+| Campo CSV | Campo del modelo | Transformación |
+| --- | --- | --- |
+| `ticket_id` | — | Solo control de duplicados; no se almacena |
+| `description` | `title` | Primeros 120 caracteres, recortados; descarta el registro si queda vacío |
+| `description` | `description` | Copia literal |
+| `date` | `created_at` | Parsea `YYYY-MM-DD` como medianoche UTC; `updated_at` recibe el mismo instante al insertar |
+| — | `origin` | Siempre `customer` para estos registros |
+| — | `branch` | Siempre `central`, porque el CSV no contiene una oficina |
+
+### Mapeo de estados y categorías
+
+| CSV `status` | Modelo `status` |
+| --- | --- |
+| `OPEN` | `open` |
+| `CLOSED` | `resolved` |
+| `DISCARDED` | `discarded` |
+
+| CSV `category` | Modelo `category` |
+| --- | --- |
+| `TECHNICAL` | `technical_failure` |
+| `BILLING` | `process_error` |
+| `ACCESS` | `technical_failure` |
+| `HR_QUERY` | `process_error` |
+| `COMPLAINT` | `client_complaint` |
+
+## Conteos esperados tras la carga
+
+Después de cargar el CSV, `/api/incidents/summary` debe devolver los conteos del modelo correspondientes a los 96 registros válidos (se excluyen las filas inválidas del CSV original).
+
+| Estado del modelo | Conteo |
+| --- | ---: |
+| `open` | 27 |
+| `resolved` | 56 |
+| `discarded` | 13 |
+
+| Categoría del modelo | Conteo |
+| --- | ---: |
+| `technical_failure` | 49 |
+| `process_error` | 35 |
+| `client_complaint` | 12 |
+
+Estos son conteos post-transformación; el CSV de origen utiliza estados como `OPEN`/`CLOSED`/`DISCARDED` y categorías como `TECHNICAL`/`BILLING`.
+
+## Notas de implementación
+
+- Nexova opera en español en Valencia e inglés en Miami. Si los hitos previos incluyen soporte bilingüe, respétalo en el formulario y los mensajes de error.
+- `sla_breach` es una categoría crítica para Roberto y Laura; diseña el modelo para que añadir un filtro por ella sea sencillo. Las alertas automáticas quedan fuera de este proyecto.
+
+_Documento interno — 4Geeks Academy · AI Engineering Track_

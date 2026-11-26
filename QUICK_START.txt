@@ -1,0 +1,173 @@
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                 🚀 GUÍA RÁPIDA - INTERFAZ DE PROVEEDORES 🚀                    ║
+║                      NEXOVA SUPPLIERS MANAGEMENT SYSTEM                        ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─ 🌐 ACCESO A LA INTERFAZ ──────────────────────────────────────────────────┐
+│                                                                               │
+│  👉 HAZA CLIC EN ESTE ENLACE:                                                │
+│                                                                               │
+│  🔗 https://cuddly-enigma-qvqjg4w7rx9g36x5r-3000.app.github.dev/suppliers-ui.html
+│                                                                               │
+│  O copia y pega la URL en tu navegador.                                      │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ ⚙️  COMPONENTES EN EJECUCIÓN ─────────────────────────────────────────────┐
+│                                                                               │
+│  ✅ FastAPI Backend (Puerto 8000)                                            │
+│     Estado: RUNNING                                                           │
+│     Docs: https://cuddly-enigma-qvqjg4w7rx9g36x5r-8000.app.github.dev/docs  │
+│                                                                               │
+│  ✅ HTTP Server Python (Puerto 3000)                                         │
+│     Estado: RUNNING                                                           │
+│     Sirviendo archivos HTML y assets                                         │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ 🎯 GUÍA DE USO RÁPIDO ────────────────────────────────────────────────────┐
+│                                                                               │
+│  1️⃣  VISUALIZAR PROVEEDORES                                                 │
+│      └─ La tabla se carga automáticamente cuando abres la interfaz           │
+│      └─ Puedes ver: Nombre, País, Categoría, Tarifa, Estado, Renovación     │
+│                                                                               │
+│  2️⃣  FILTRAR PROVEEDORES                                                    │
+│      └─ País: Selecciona "Spain" o "USA"                                     │
+│      └─ Categoría: Selecciona cualquiera de 9 tipos de servicio              │
+│      └─ Los filtros se aplican automáticamente                               │
+│                                                                               │
+│  3️⃣  CREAR NUEVO PROVEEDOR                                                  │
+│      └─ Haz clic en botón "➕ Nuevo Proveedor"                               │
+│      └─ Rellena los campos (obligatorios marcados con *)                     │
+│      └─ Categorías: Selecciona múltiples opciones (Ctrl+Click)              │
+│      └─ Haz clic en "Registrar"                                              │
+│      └─ El proveedor aparecerá en la tabla                                   │
+│                                                                               │
+│  4️⃣  EDITAR TARIFA MENSUAL                                                  │
+│      └─ Haz clic en el ícono ✏️ (lápiz) en la columna "Tarifa Mensual"      │
+│      └─ Modifica el valor numérico                                           │
+│      └─ Haz clic en 💾 (guardar) para confirmar                              │
+│      └─ La tarifa se actualiza en la API automáticamente                     │
+│                                                                               │
+│  5️⃣  CAMBIAR ESTADO (Activo/Suspendido)                                     │
+│      └─ Haz clic en 🔒 (si está activo) o 🔓 (si está suspendido)           │
+│      └─ El estado cambia inmediatamente                                      │
+│      └─ Los proveedores suspendidos aparecen más grises en la tabla         │
+│                                                                               │
+│  6️⃣  ELIMINAR PROVEEDOR                                                     │
+│      └─ Haz clic en el ícono 🗑️ (papelera)                                  │
+│      └─ Confirma en el popup de seguridad                                    │
+│      └─ El proveedor se elimina de la base de datos                          │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ 📊 DATOS INICIALES ───────────────────────────────────────────────────────┐
+│                                                                               │
+│  📍 Total de Proveedores: 15                                                 │
+│  ✅ Activos: 12                                                              │
+│  ⏸️  Suspendidos: 3                                                           │
+│                                                                               │
+│  🌍 Por País:                                                                │
+│     • 🇪🇸 Spain: 8 proveedores                                              │
+│     • 🇺🇸 USA: 7 proveedores                                                │
+│                                                                               │
+│  💶 Inversión Mensual:                                                       │
+│     • EUR: €7,059.00/mes                                                     │
+│     • USD: $5,984.00/mes                                                     │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ 📋 CAMPOS DEL FORMULARIO (CREAR/EDITAR) ─────────────────────────────────┐
+│                                                                               │
+│  OBLIGATORIOS (marcados con *):                                              │
+│    • Nombre del Proveedor: Texto libre (ej: LinkedIn Talent Solutions)      │
+│    • País: Dropdown (Spain, USA)                                             │
+│    • Moneda: Dropdown (EUR, USD)                                             │
+│    • Tarifa Mensual: Número decimal (ej: 1200.50)                            │
+│    • Categorías: Selección múltiple                                          │
+│                                                                               │
+│  OPCIONALES:                                                                 │
+│    • Email de Contacto: Correo electrónico                                   │
+│    • Fecha de Renovación: Fecha (formato YYYY-MM-DD)                         │
+│    • Notas: Texto libre para observaciones internas                          │
+│                                                                               │
+│  CATEGORÍAS DISPONIBLES:                                                     │
+│    1. Job Boards                                                              │
+│    2. ATS Software                                                            │
+│    3. Assessment Tools                                                        │
+│    4. Training Platforms                                                      │
+│    5. Payroll & HR Software                                                   │
+│    6. Video Interview                                                         │
+│    7. Background Check                                                        │
+│    8. Office & Facilities                                                     │
+│    9. IT & Software Licenses                                                  │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ 🔧 INFORMACIÓN TÉCNICA ───────────────────────────────────────────────────┐
+│                                                                               │
+│  TECNOLOGÍAS:                                                                │
+│    • Frontend: Vue 3 (desde CDN)                                              │
+│    • Backend: FastAPI + Python                                               │
+│    • Database: TinyDB (archivo JSON local)                                    │
+│    • Servidor Web: Python http.server                                        │
+│                                                                               │
+│  ENDPOINTS API:                                                              │
+│    • GET    /suppliers              - Listar proveedores                     │
+│    • POST   /suppliers              - Crear proveedor                        │
+│    • PATCH  /suppliers/{id}/rate    - Actualizar tarifa                      │
+│    • PATCH  /suppliers/{id}/status  - Cambiar estado                         │
+│    • DELETE /suppliers/{id}         - Eliminar proveedor                     │
+│                                                                               │
+│  DOCUMENTACIÓN API INTERACTIVA:                                              │
+│    https://cuddly-enigma-qvqjg4w7rx9g36x5r-8000.app.github.dev/docs        │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ 💡 CONSEJOS Y TRUCOS ─────────────────────────────────────────────────────┐
+│                                                                               │
+│  • Los cambios se guardan automáticamente en la base de datos                │
+│  • Puedes combinar filtros de País y Categoría para búsquedas más precisas  │
+│  • Usa CTRL+Click para seleccionar múltiples categorías                     │
+│  • La interfaz es completamente responsiva (funciona en móvil y tablet)      │
+│  • Los datos persisten entre sesiones (están guardados en la API)           │
+│  • Abre la consola del navegador (F12) para ver errores detallados          │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ 🐛 SOLUCIÓN DE PROBLEMAS ─────────────────────────────────────────────────┐
+│                                                                               │
+│  PROBLEMA: "No se carga la interfaz"                                         │
+│  SOLUCIÓN: Verifica que ambos servidores (8000 y 3000) están corriendo      │
+│            Recarga la página (Ctrl+R o Cmd+R)                                │
+│                                                                               │
+│  PROBLEMA: "Los datos no se guardan"                                         │
+│  SOLUCIÓN: Abre la consola (F12) para ver errores                            │
+│            Verifica que la API en puerto 8000 está respondiendo              │
+│            Recarga la página                                                  │
+│                                                                               │
+│  PROBLEMA: "Errores de conexión"                                             │
+│  SOLUCIÓN: Verifica que el puerto 8000 no está en uso                        │
+│            Reinicia el servidor FastAPI                                      │
+│            Comprueba la URL de la API: http://localhost:8000                 │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ 📞 INFORMACIÓN DE CONTACTO ───────────────────────────────────────────────┐
+│                                                                               │
+│  Versión: 1.0.0                                                              │
+│  Última actualización: 2026-11-16                                            │
+│  Proyecto: Nexova Suppliers Management System                                │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+

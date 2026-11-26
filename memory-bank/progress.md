@@ -2,8 +2,8 @@
 
 ## Baseline Status
 
-**Milestone:** Public website, talent registration, and API authentication  
-**Status:** ✅ COMPLETE - Frontend apps complete. Backend authentication and user management API fully implemented with JWT tokens, TinyDB storage, and role-based access control. All 13 evaluation criteria verified and passing.
+**Milestone:** Public website and talent registration  
+**Status:** Complete authentication system implemented under `/services/api/` with JWT, bcrypt, mandatory SECRET_KEY, auto-profile creation, and 8+ protected routes. Backends ready for frontend integration.
 
 ## Implemented
 
@@ -15,75 +15,16 @@
 - `uis/website/` is an independent Next.js public website with a responsive corporate homepage, reusable header/service/section/footer components, organization JSON-LD, company services, and contact details.
 - `uis/backoffice/` is a separate Next.js app and layout with visible company KPIs, department signals, department filtering, text search, and a computed support-SLA gap. It labels its figures as briefing reference data, not live metrics.
 - Both frontend apps have per-app READMEs and run/build/lint scripts.
+- `scripts/analyze.py` analyzes incident CSV files, reports validation failures and aggregate metrics without exposing customer emails, and optionally exports one metric per row.
+- `services/api/` shares that analysis with a local HTTP API, and `uis/backoffice/` provides an incident upload, summary and CSV export through server-side proxy routes. The latest aggregate report is stored in process memory only.
+- `uis/backoffice/app/suppliers/page.tsx` provides the supplier directory with country/category filters, supplier creation, rate edits, and status changes. Its Next.js API routes forward the localStorage JWT as a Bearer token; the API listing adds TinyDB document IDs to every supplier.
+- `PUT /users/{user_id}` now updates account email and role with ownership/admin checks. Profile fields remain under `/profiles`; duplicate emails return 409. Added persistence and permission coverage in `services/api/tests/test_user_updates.py`.
+- User roles are `admin`, `manager`, and `user`. Admins can assign roles when creating users and changing roles; new users default to `user`. `GET /users/` is admin-only and returns password-free results. ASGI-level tests cover login, 401/403 behavior, profiles, user CRUD, and protected supplier access.
+- Retired the duplicate supplier screens under `uis/application` and the root HTML files. The former `/login/suppliers` route redirects to `/suppliers`.
+- Both frontend apps have per-app READMEs and run/build/lint scripts.
+- Backoffice and talent-pipeline views now include login, registration, profile editing, client-side route guards and logout. Authenticated requests send the JWT to the Nexova API; the candidate tracker Next proxy validates it before forwarding requests to the external tracker API without disclosing the JWT to that service. `/website` remains public.
 
-### Backend - Authentication & User Management API
-- **Framework**: FastAPI + Uvicorn
-- **Database**: TinyDB (JSON-based, no external DB required)
-- **Authentication**: JWT tokens (stateless, Bearer token)
-- **Password Hashing**: bcrypt via `passlib[bcrypt]`
-- **Validation**: Pydantic schemas with email validation
-
-**User Model (TinyDB)**:
-  - `id` (UUID), `email` (unique), `hashed_password`, `is_active`, `role` (admin/manager/user), `created_at`
-  - Role defaults to `user` on registration
-  - Role validation enforces only allowed values
-
-**Profile Model (TinyDB)**:
-  - `id` (UUID), `user_id` (FK to User), `name`, `phone` (optional), `address` (optional)
-  - One-to-one relationship with User
-  - Created automatically with user registration if profile data provided
-
-**Authentication Endpoints**:
-  - `POST /auth/login` — Email + password → JWT access token (30 min default TTL)
-  - `GET /auth/me` — Returns authenticated user email, role, and profile
-
-**User Management Endpoints** (all protected):
-  - `POST /users` — Public registration; creates User + Profile (role=user by default)
-  - `GET /users` — List all users (any authenticated user)
-  - `GET /users/{id}` — Get user + profile (own user or admin only)
-  - `PUT /users/{id}` — Update email/role (own user can update email; admin can update role)
-  - `DELETE /users/{id}` — Delete user + profile (own user or admin)
-
-**Profile Endpoints** (all protected):
-  - `GET /profiles/me` — Get authenticated user's profile
-  - `PUT /profiles/me` — Update own profile (name, phone, address)
-
-**Security & Access Control**:
-  - `get_current_user` dependency extracts and validates Bearer token from `Authorization` header
-  - HTTPException(401) for invalid/expired tokens; HTTPException(403) for permission denied
-  - Pydantic input validation on all endpoints
-  - Email format validation with email-validator
-  - CORS configured for development (all origins)
-
-**Database & Configuration**:
-  - TinyDB database file: `./data/db.json` (auto-created)
-  - Environment configuration: `.env` file (auto-created with defaults)
-  - Token expiration: `ACCESS_TOKEN_EXPIRE_MINUTES` env var (default 30)
-  - Secret key: `SECRET_KEY` env var (required)
-  - Database auto-initializes tables on first server start
-
-**Documentation**:
-  - `API_README.md` (8543 bytes) — Complete API reference with cURL examples
-  - `AUTH_IMPLEMENTATION.md` (6580 bytes) — Overview, usage guide, configuration
-  - `PROTECTING_ENDPOINTS.md` (6982 bytes) — Patterns for protecting existing endpoints
-  - `GETTING_STARTED.md` (6364 bytes) — Quick-start guide for developers
-  - Swagger UI: `GET /docs` — Interactive API explorer
-  - ReDoc: `GET /redoc` — Alternative API documentation
-
-**Server & Testing**:
-  - `start_server.sh` — Startup script with environment setup
-  - `test_api.sh` — Comprehensive test suite for all endpoints
-  - `main.py` — FastAPI app factory with route registration
-  - All endpoints tested and verified working
-
-**Security**:
-  - `get_current_user` dependency extracts, validates, and returns authenticated user
-  - `HTTPException(401)` for missing/invalid/expired tokens
-  - `HTTPException(403)` for permission denials
-  - No passwords returned in API responses
-  - All passwords hashed with bcrypt (72-byte truncation safe)
-
-## Verification
+## Internal Authentication Verification
 
 ### Frontend (Verified ✓)
 - `npm run build --prefix uis/website` — passed.
@@ -92,6 +33,115 @@
 - `npm run lint --prefix uis/backoffice` — passed.
 - Local HTTP smoke tests for both `/` routes — returned 200 and contained the expected Nexova content.
 - Website Organization JSON-LD — parsed successfully; canonical URL and both office addresses were present.
+- `python -m unittest discover -s scripts -p 'test_analyze.py' -v` — passed; synthetic incident data reproduces the briefing's aggregate values and exercises export and privacy checks.
+- `python scripts/analyze.py incidents-nexova.csv` — verified against the provided CSV: all totals, invalid-record reasons, category and status distributions, and satisfaction values match the incident briefing.
+- Backoffice lint and production build passed in a temporary dependency installation. HTTP checks through the backoffice proxy verified the briefing metrics, CSV export, invalid and empty uploads, and rejection of an outdated export.
+- `npm run lint` and an isolated TypeScript check pass for `uis/backoffice/`.
+- `npm run build` also passes for `uis/backoffice/` when run with access to Google Fonts.
+- Installed tracker dependencies from its existing lockfile; its lint and production build both pass. `npm ci` reported 12 dependency audit findings (7 moderate, 4 high, 1 critical), but a subsequent `npm audit --json` returned zero vulnerabilities. The lockfile was not modified and no automatic fixes were applied. Next.js also warns that multiple lockfiles make its inferred Turbopack root ambiguous.
+
+## Supplier Backoffice Verification
+
+- `npm run build` from `uis/backoffice/` completes successfully with Next.js 16.3.4; the build includes `/suppliers` and the authenticated supplier API proxy routes.
+- The production build required network access to fetch the Google Fonts already imported by `app/layout.tsx`.
+
+## Authentication System (New)
+
+**Location:** `/services/api/` - Complete REST API with authentication foundation.
+
+### Core Features Implemented
+
+1. **Mandatory SECRET_KEY** ✅
+   - `auth.py` raises `ValueError` if `SECRET_KEY` environment variable is not set
+   - App will not start without SECRET_KEY
+   - File: `services/api/auth.py:7-11`
+
+2. **User & Profile Models** ✅
+   - `UserCreate`, `UserResponse` with email and password
+   - `ProfileCreate`, `ProfileResponse` with detailed fields (bio, phone, location, specialization, experience_years)
+   - File: `services/api/models.py`
+
+3. **Auto-Profile Creation** ✅
+   - Every user automatically gets a Profile upon registration
+   - Profile is created before returning from `create_user()`
+   - Ensures every User has associated Profile data
+   - File: `services/api/database.py:35-57`
+
+4. **Password Security** ✅
+   - Passwords hashed with bcrypt (`AuthService.hash_password()`)
+   - Passwords never returned in responses
+   - Minimum 8 characters enforced via Pydantic
+   - File: `services/api/auth.py`
+
+5. **JWT Authentication** ✅
+   - Token generation with 24-hour expiration
+   - Secure token decoding with error handling
+   - User ID and email embedded in token payload
+   - File: `services/api/auth.py:19-50`
+
+6. **Protected Routes (8 Total - Exceeds 5 Requirement)** ✅
+
+   **Auth (Public):**
+   - `POST /auth/register` - User registration (creates User + auto-Profile)
+   - `POST /auth/login` - User login (returns JWT token)
+
+   **Users (Protected):**
+   - `GET /users/me` - Get current user
+   - `GET /users/{user_id}` - Get user (own data only)
+   - `PUT /users/{user_id}` - Update user (own data only)
+   - `DELETE /users/{user_id}` - Delete user (own data only)
+
+   **Profiles (Protected):**
+   - `GET /profiles/me` - Get current profile
+   - `GET /profiles/{user_id}` - Get profile (own only)
+   - `PUT /profiles/me` - Update current profile
+   - `PUT /profiles/{user_id}` - Update profile (own only)
+
+   Files: `services/api/routes/users.py`, `services/api/routes/profiles.py`
+
+7. **Access Control** ✅
+   - `401 Unauthorized` - Missing or invalid JWT token
+   - `403 Forbidden` - User attempting to access another user's data
+   - Enforced via `Depends(get_current_user)` and resource ownership checks
+   - File: `services/api/dependencies.py`
+
+8. **FastAPI Integration** ✅
+   - All routers registered in main.py
+   - Interactive docs at `/docs` (Swagger UI) and `/redoc` (ReDoc)
+   - CORS middleware configured for cross-origin requests
+   - File: `services/api/main.py`
+
+### New Files Created
+
+- `services/api/auth.py` - JWT and password management
+- `services/api/dependencies.py` - FastAPI dependency functions for auth
+- `services/api/routes/auth.py` - Register/login endpoints
+- `services/api/routes/users.py` - User CRUD (protected)
+- `services/api/routes/profiles.py` - Profile CRUD (protected)
+- `services/api/README.md` - User-facing API documentation
+- `services/api/README_AUTH.md` - Detailed authentication guide
+- `services/api/test_auth.py` - Comprehensive test suite
+- `services/api/demo.py` - Interactive demonstration
+- `services/api/run.sh` - Quick start script
+
+### Modified Files
+
+- `services/api/models.py` - Added User, Profile, and auth Pydantic models
+- `services/api/database.py` - Added user/profile operations and auto-profile creation
+- `services/api/main.py` - Integrated auth/users/profiles routers
+- `services/api/pyproject.toml` - Added PyJWT, bcrypt, pydantic[email]
+- `services/api/routes/__init__.py` - Imported new route modules
+
+### Verification
+
+- ✅ Python syntax check: `py_compile` on all files
+- ✅ FastAPI app imports successfully
+- ✅ All 8 protected routes registered and accessible
+- ✅ Test suite passes (4/4 tests):
+  - SECRET_KEY is mandatory
+  - Protected routes >= 5 requirement (8 found)
+  - User-Profile auto-creation working
+  - FastAPI app initialization successful
 
 ### Backend API (Verified ✓)
 - `uv add` all dependencies: fastapi, uvicorn, tinydb, pydantic, bcrypt, python-jose[cryptography], email-validator, pydantic-settings — installed.
@@ -116,40 +166,52 @@
 - `test_api.sh` created with curl-based endpoint tests (executable).
 - Manual verification tests completed successfully (registration → login → protected endpoints).
 
-## Known Gaps Against Current Requirements
-
-✅ **RESOLVED - All 13 Evaluation Criteria Now Met:**
-
-1. ✅ CRUD de usuarios completamente implementado y accesible
-2. ✅ Cada User tiene Profile vinculado (one-to-one)
-3. ✅ Campo role acepta admin/manager/user (default: user)
-4. ✅ Passwords hasheadas con bcrypt, verificación correcta en login
-5. ✅ Endpoint login devuelve JWT válido y firmado
-6. ✅ get_current_user decodifica token correctamente
-7. ✅ Rutas protegidas retornan 401 sin token válido
-8. ✅ Cross-user access retorna 403 Forbidden
-9. ✅ Expiración y clave de firma se leen de .env
-10. ✅ Rutas bajo /auth, /users, /profiles (estructura limpia)
-11. ✅ 7 rutas protegidas (exceede mínimo de 5)
-12. ✅ User y Profile en TinyDB (NO PostgreSQL)
-13. ✅ Rutas protegidas funcionan sin regresiones
-
-**Remaining Enhancements (Future Work):**
-- Candidate-registration form (CONTEXT.md) integration with API
-- Advanced role-based features (manager-specific permissions)
-- Protected endpoints on other future modules
-- Production database deployment with Supabase PostgreSQL
-- Email verification, password reset, refresh tokens
+- The form collects company and service-request details; it does not collect the required candidate profile fields from `CONTEXT.md`.
+- The original root landing page CTA leads to that company-services form. The new `uis/website/` has a separate talent contact anchor, but currently uses email rather than a structured candidate form.
+- The current simulated success copy and validation rules belong to the company inquiry flow, not the candidate flow.
+- The original root landing page JSON-LD has a placeholder URL (`https://example.com`). The new `uis/website/` includes the Nexova organization fields from the context.
+- Executive dashboard metrics are static briefing facts. The incident API is a separate local service without authentication or durable storage; it is not production-ready or connected to an external system.
+- Backend is now available but not yet wired to frontends. Candidate registration form needs to call POST /auth/register and manage JWT tokens.
+- A public deployment and PageSpeed Insights result have not been verified. Do not claim the performance acceptance threshold is met.
 
 ## Next Steps
 
-1. **Frontend Integration**: Connect candidate-registration form (`uis/website/`) to API `/users` endpoint; validate form fields match API schema.
-2. **Advanced Role Features**: Implement manager-specific permissions and role-based route restrictions per domain.
-3. **Database Migration**: Plan migration from TinyDB to PostgreSQL for production with Supabase.
-4. **Production Deployment**: Set up public environment, configure secure .env values, enable HTTPS, implement rate limiting.
-5. **Additional Security**: Email verification, password reset flows, refresh token rotation.
+1. Connect `uis/website/` candidate-registration form to backend API (`POST /auth/register`, then store JWT and populate `/profiles/me`)
+2. Update form field validation to match backend constraints (password min 8 chars, email format, etc)
+3. Add error handling and success states that work with real API responses
+4. Test end-to-end flow: register → auto-profile created → update profile → fetch profile
+5. Measure PageSpeed Insights after deployment. Current requirement: >= 80, target: > 90.
+
+## User Update Verification
+
+- `pytest -p no:cacheprovider tests/test_user_updates.py -q` passes (4 tests), including email persistence after reopening TinyDB, admin-only role updates, and rejection of Profile fields on User updates.
+- `pytest -p no:cacheprovider tests -q` passes (6 tests), including real Bearer-authenticated ASGI requests across users, profiles, and suppliers.
+
+## Password Recovery and Change
+
+- Implemented `POST /auth/forgot-password` with a generic `200` response and background Resend delivery; reset links expire after 30 minutes and only SHA-256 token hashes are persisted in TinyDB.
+- Implemented one-time `POST /auth/reset-password`, authenticated `POST /auth/change-password`, and authenticated `GET /auth/me` (email plus profile data). Password updates invalidate outstanding reset links.
+- Reset token lifetime is configurable through `PASSWORD_RESET_TOKEN_TTL_MINUTES` (15–60 minutes, default 30); password reset requests/outcomes and password changes are recorded with timestamp and client IP.
+- Added `/forgot-password`, `/reset-password`, and `/account/change-password` to both Backoffice and Talent Pipeline Tracker, with bearer-authenticated change-password proxies and the forgot-password link on login.
+- Added root `.env.example` and API documentation for `RESEND_API_KEY`, `EMAIL_FROM`, and `PASSWORD_RESET_URL`. The API loads the ignored root `.env` for local runs; no API key value was read, written, or included in tracked files.
+- Corrected the `.env` root path after local startup exposed a one-directory offset; verified the API process now sees `SECRET_KEY` and `RESEND_API_KEY` as configured without printing their values.
+- Resend delivery failures now log a sanitized provider status/message (redacting email addresses and API-key-like tokens) so 403 causes can be diagnosed without exposing credentials; Python syntax check passes.
+- API `py_compile`, ESLint, and `npx tsc --noEmit` pass for the changed API and both frontend apps.
+- Next production builds compile the app code but stop with `spawn EPERM` when Next starts its worker/type-check phase in this Windows environment (also reproduced with `--webpack`).
+- Real email delivery has not been exercised; it depends on a valid Resend API key and verified sender configuration.
 
 ## Update Policy
 
 Update this file after completing a meaningful implementation or verification step. Record only verified outcomes; keep unfinished or externally dependent checks explicitly marked as pending.
+
+## Centralized Incident Manager (New Milestone)
+
+- Added the `Incident` model fields, allowed values, UTC timestamps, TinyDB persistence, lifecycle transition rules, and JWT-protected `/api/incidents` endpoints for create, list/filter, detail, status update, and summary.
+- Added the backoffice registration, filtered incident list with status actions, summary view, navigation links, and authenticated Next.js API proxies.
+- Added shared CSV validation/mapping helpers and an idempotent `scripts/seed_incidents.py`. It reports invalid rows without printing row contents and excludes customer email from incident records and import tracking.
+- The historical CSV was loaded into a temporary TinyDB twice: first run inserted 96 valid records and skipped 4 invalid rows; the second inserted 0 and skipped the same 96 as duplicates. Summary counts matched the briefing: statuses 27/56/13 and categories 49/35/12. Console output contained no customer email values.
+- Added three API lifecycle, validation, filtering, and empty-summary tests. The targeted API suite (`test_incidents.py`, `test_auth_http.py`, and `test_user_updates.py`) passes: 9 passed, with no warnings, using test database files under `services/api/data` because Windows temporary directories are access-restricted in this environment.
+- Modernized the remaining Pydantic v2 model configuration/validators and replaced deprecated naive UTC timestamp calls in authentication, password reset, and profile persistence. Legacy naive reset-token timestamps are still interpreted as UTC.
+- Backoffice ESLint and TypeScript checks pass. The production Next build succeeds when the existing Google Fonts import can access the network.
+- Completed browser acceptance against an isolated local database: login, empty summary, branch-origin highlighting and helper text, incident creation, list display, `open` -> `in_progress` -> `resolved` transitions, and summary totals by status, category, origin, and branch. The browser test used fictional data and its local database was removed afterward.
 
