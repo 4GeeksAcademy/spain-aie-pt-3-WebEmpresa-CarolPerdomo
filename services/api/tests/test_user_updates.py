@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from uuid import uuid4
 
-os.environ.setdefault("SECRET_KEY", "test-only-secret-key-for-user-update-tests")
+os.environ.setdefault("SECRET_KEY", "test-only-user-update-key-longer-than-32-bytes")
 
 from fastapi import HTTPException
 from pydantic import ValidationError
@@ -15,13 +15,13 @@ from nexova_suppliers.routes.users import update_user
 
 @pytest.fixture
 def database():
-    with TemporaryDirectory(dir=Path(__file__).parent) as temp_dir:
-        db_path = Path(temp_dir) / "users.json"
-        db = SuppliersDB(db_path)
-        try:
-            yield db, db_path
-        finally:
-            db.close()
+    db_path = Path(__file__).resolve().parents[1] / "data" / f"user-update-test-{uuid4().hex}.json"
+    db = SuppliersDB(db_path)
+    try:
+        yield db, db_path
+    finally:
+        db.close()
+        db_path.unlink(missing_ok=True)
 
 
 def test_owner_email_update_persists_after_database_reopen(database):

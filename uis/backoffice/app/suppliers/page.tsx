@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { apiFetch } from "@/lib/auth-client";
 
 type Supplier = {
   id: number;
@@ -82,7 +84,7 @@ export default function SuppliersPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/suppliers${query ? `?${query}` : ""}`, { cache: "no-store" });
+      const response = await apiFetch(`/api/suppliers${query ? `?${query}` : ""}`);
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(messageFrom(body, `No se pudo cargar el directorio (HTTP ${response.status}).`));
@@ -96,14 +98,17 @@ export default function SuppliersPage() {
     }
   }, [query]);
 
-  useEffect(() => { void loadSuppliers(); }, [loadSuppliers]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadSuppliers(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadSuppliers]);
 
   async function send(path: string, init: RequestInit, success: string) {
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      const response = await fetch(path, init);
+      const response = await apiFetch(path, init);
       const body = response.status === 204 ? null : await response.json().catch(() => null);
       if (!response.ok) throw new Error(messageFrom(body, "No se pudo completar la operación."));
       setNotice(success);
@@ -147,7 +152,7 @@ export default function SuppliersPage() {
   return (
     <main className="min-h-screen px-5 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-7xl">
-        <a href="/" className="text-sm font-semibold text-pine hover:underline">← Volver al resumen</a>
+        <Link href="/" className="text-sm font-semibold text-pine hover:underline">← Volver al resumen</Link>
         <header className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">Operaciones · Directorio</p>

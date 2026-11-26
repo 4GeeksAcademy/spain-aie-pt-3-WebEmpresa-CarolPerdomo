@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { saveAuthToken } from "@/lib/auth-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,10 +36,15 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.detail || "No se pudo iniciar sesión");
+        setError(typeof data.detail === "string" ? data.detail : "Revisa el correo y la contraseña e inténtalo de nuevo.");
         return;
       }
 
+      if (typeof data.access_token !== "string") {
+        setError("La respuesta del servidor no incluyó un token de sesión.");
+        return;
+      }
+      saveAuthToken(data.access_token);
       router.push("/");
       router.refresh();
     } catch {
@@ -64,8 +70,9 @@ export default function LoginPage() {
         {notice && <p role="status" className="text-sm text-green-700">{notice}</p>}
 
         <div>
-          <label className="mb-2 block text-sm font-medium">Correo electrónico</label>
+          <label htmlFor="email" className="mb-2 block text-sm font-medium">Correo electrónico</label>
           <input
+            id="email"
             type="email"
             required
             value={email}
@@ -80,8 +87,9 @@ export default function LoginPage() {
         </Link>
 
         <div>
-          <label className="mb-2 block text-sm font-medium">Contraseña</label>
+          <label htmlFor="password" className="mb-2 block text-sm font-medium">Contraseña</label>
           <input
+            id="password"
             type="password"
             required
             value={password}
@@ -102,6 +110,8 @@ export default function LoginPage() {
         >
           {loading ? "Ingresando..." : "Iniciar sesión"}
         </button>
+        <p className="text-center text-sm"><Link className="font-medium text-pine underline" href="/forgot-password">¿Olvidaste tu contraseña?</Link></p>
+        <p className="text-center text-sm text-slate-600">¿Aún no tienes cuenta? <Link className="font-semibold text-slate-900 underline" href="/register">Crear cuenta</Link></p>
       </form>
     </main>
   );

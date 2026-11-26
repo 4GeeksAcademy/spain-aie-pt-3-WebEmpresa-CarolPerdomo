@@ -1,12 +1,20 @@
-from pydantic import BaseModel, ConfigDict, Field, validator, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, field_validator, model_validator
 from typing import Optional, List
 from enum import Enum
 from datetime import datetime
+from nexova_shared.incident_csv import (
+    INCIDENT_BRANCHES,
+    INCIDENT_CATEGORIES,
+    INCIDENT_ORIGINS,
+    INCIDENT_STATUSES,
+    validate_incident_field,
+)
 
 # ============ Auth Models ============
 
 class RoleEnum(str, Enum):
     ADMIN = "admin"
+    MANAGER = "manager"
     USER = "user"
 
 class UserCreate(BaseModel):
@@ -19,13 +27,12 @@ class AdminUserCreate(UserCreate):
     role: RoleEnum = RoleEnum.USER
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     email: str
     role: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class UserUpdate(BaseModel):
     """Fields editable on a user account; profile details stay on Profile."""
@@ -42,6 +49,8 @@ class ProfileCreate(BaseModel):
     experience_years: Optional[int] = Field(None, ge=0)
 
 class ProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     name: Optional[str] = None
@@ -52,9 +61,6 @@ class ProfileResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    
-    class Config:
-        from_attributes = True
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -75,6 +81,20 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+class ForgotPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(..., min_length=32, max_length=200)
+    new_password: str = Field(..., min_length=8)
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
 
 # ============ Suppliers Models ============
 
@@ -114,37 +134,36 @@ class SupplierBase(BaseModel):
     contact_email: Optional[EmailStr] = None
     notes: Optional[str] = None
 
-    @validator('contract_renewal_date')
-    def validate_date_format(cls, v):
-        if v:
+    @field_validator('contract_renewal_date')
+    @classmethod
+    def validate_date_format(cls, value):
+        if value:
             try:
-                datetime.strptime(v, '%Y-%m-%d')
+                datetime.strptime(value, '%Y-%m-%d')
             except ValueError:
                 raise ValueError('contract_renewal_date debe estar en formato YYYY-MM-DD')
-        return v
+        return value
 
-    @validator('currency')
-    def validate_currency_country(cls, v, values):
-        if 'country' in values:
-            country = values['country']
-            if country == CountryEnum.SPAIN and v != CurrencyEnum.EUR:
-                raise ValueError('Spain debe usar EUR')
-            if country == CountryEnum.USA and v != CurrencyEnum.USD:
-                raise ValueError('USA debe usar USD')
-        return v
+    @model_validator(mode="after")
+    def validate_currency_country(self):
+        if self.country == CountryEnum.SPAIN and self.currency != CurrencyEnum.EUR:
+            raise ValueError('Spain debe usar EUR')
+        if self.country == CountryEnum.USA and self.currency != CurrencyEnum.USD:
+            raise ValueError('USA debe usar USD')
+        return self
 
 class SupplierCreate(SupplierBase):
     pass
 
 class Supplier(SupplierBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
 
 class SupplierUpdate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
     monthly_rate: Optional[float] = Field(None, gt=0, allow_inf_nan=False)
     status: Optional[StatusEnum] = None
@@ -157,4 +176,82 @@ class SupplierRateUpdate(BaseModel):
 class SupplierStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+
     status: StatusEnum
+
+    model_config = ConfigDict(from_attributes=True)
+
+    monthly_rate: Optional[float] = Field(None, gt=0)
+    status: Optional[StatusEnum] = None
+
+
+# ============ Incident Management Models ============
+
+class IncidentStatusEnum(str, Enum):
+    OPEN = INCIDENT_STATUSES[0]
+    IN_PROGRESS = INCIDENT_STATUSES[1]
+    RESOLVED = INCIDENT_STATUSES[2]
+    DISCARDED = INCIDENT_STATUSES[3]
+
+
+class IncidentOriginEnum(str, Enum):
+    CUSTOMER = INCIDENT_ORIGINS[0]
+    BRANCH = INCIDENT_ORIGINS[1]
+    INTERNAL = INCIDENT_ORIGINS[2]
+
+
+class IncidentBranchEnum(str, Enum):
+    CENTRAL = INCIDENT_BRANCHES[0]
+    VALENCIA_OPERATIONS = INCIDENT_BRANCHES[1]
+    MIAMI_OFFICE = INCIDENT_BRANCHES[2]
+    REMOTE = INCIDENT_BRANCHES[3]
+
+
+class IncidentCategoryEnum(str, Enum):
+    TECHNICAL_FAILURE = INCIDENT_CATEGORIES[0]
+    PROCESS_ERROR = INCIDENT_CATEGORIES[1]
+    CLIENT_COMPLAINT = INCIDENT_CATEGORIES[2]
+    CANDIDATE_ISSUE = INCIDENT_CATEGORIES[3]
+    STAFF_ISSUE = INCIDENT_CATEGORIES[4]
+    SLA_BREACH = INCIDENT_CATEGORIES[5]
+    DATA_QUALITY = INCIDENT_CATEGORIES[6]
+    OTHER = INCIDENT_CATEGORIES[7]
+
+
+class IncidentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(..., min_length=1, max_length=120)
+    description: str = Field(..., min_length=1)
+    category: IncidentCategoryEnum
+    status: IncidentStatusEnum
+    origin: IncidentOriginEnum
+    branch: IncidentBranchEnum
+
+    @field_validator("title")
+    @classmethod
+    def require_title(cls, value):
+        message = validate_incident_field("title", value)
+        if message:
+            raise ValueError(message)
+        return value
+
+    @field_validator("description")
+    @classmethod
+    def require_description(cls, value):
+        message = validate_incident_field("description", value)
+        if message:
+            raise ValueError(message)
+        return value
+
+
+class Incident(IncidentCreate):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class IncidentStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: IncidentStatusEnum
+   main

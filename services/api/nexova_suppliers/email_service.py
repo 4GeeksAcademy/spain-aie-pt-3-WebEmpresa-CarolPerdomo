@@ -1,64 +1,65 @@
-import html
+"""Transactional email delivery through the Resend REST API."""
 import json
-import urllib.request
+import os
+import re
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
-from .config import get_setting
-from .auth import PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+
+class EmailDeliveryError(RuntimeError):
+    pass
 
 
-def send_password_reset_email(recipient: str, reset_url: str) -> None:
-    api_key = get_setting("RESEND_API_KEY")
+def _safe_provider_message(body: bytes) -> str:
+    """Extract a useful provider error while redacting email addresses and keys."""
+    try:
+        response = json.loads(body.decode("utf-8"))
+        message = response.get("message") or response.get("error") or response.get("name")
+        if isinstance(message, dict):
+            message = message.get("message") or message.get("name")
+        if not isinstance(message, str):
+            return "No provider detail was returned"
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return "No provider detail was returned"
+    message = re.sub(r"\b[\w.+%-]+@[\w.-]+\.[A-Za-z]{2,}\b", "[email redacted]", message)
+    message = re.sub(r"\bre_[A-Za-z0-9_-]{8,}\b", "[API key redacted]", message)
+    return message[:400]
+
+
+def send_password_reset_email(to_email: str, reset_url: str) -> None:
+    api_key = os.getenv("RESEND_API_KEY")
     if not api_key:
-        raise RuntimeError("RESEND_API_KEY is not configured")
+        raise EmailDeliveryError("RESEND_API_KEY is not configured")
 
-    sender = get_setting("RESEND_FROM_EMAIL", "Nexova <onboarding@resend.dev>")
-    safe_url = html.escape(reset_url, quote=True)
-    message = {
+    sender = os.getenv("EMAIL_FROM", "Nexova <onboarding@resend.dev>")
+    payload = {
         "from": sender,
-        "to": [recipient],
+        "to": [to_email],
         "subject": "Restablece tu contraseña de Nexova",
-        "text": (
-            "Recibimos una solicitud para restablecer la contraseña de tu cuenta Nexova.\n\n"
-            f"Abre este enlace en los próximos {PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} minutos: {reset_url}\n\n"
-            "Si no solicitaste este cambio, puedes ignorar este mensaje."
+        "html": (
+            "<p>Recibimos una solicitud para restablecer tu contraseña.</p>"
+            f'<p><a href="{reset_url}">Crear una contraseña nueva</a></p>'
+            "<p>El enlace caduca en 30 minutos y solo se puede usar una vez. "
+            "Si no solicitaste este cambio, ignora este mensaje.</p>"
         ),
-        "html": f"""<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <title>Restablecer contraseña</title>
-  </head>
-  <body style="margin:0;background:#f1f3ed;color:#1c302a;font-family:Arial,Helvetica,sans-serif;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f1f3ed;padding:24px 12px;">
-      <tr><td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #d5ddd3;border-radius:16px;">
-          <tr><td style="padding:32px 28px 12px;font-size:24px;font-weight:700;color:#23483d;">Nexova<span style="color:#78934b;">.</span></td></tr>
-          <tr><td style="padding:8px 28px 32px;">
-            <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;">Restablece tu contraseña</h1>
-            <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">Recibimos una solicitud para cambiar la contraseña de tu cuenta. El enlace caduca en {PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} minutos y solo se puede usar una vez.</p>
-            <p style="margin:0 0 24px;"><a href="{safe_url}" style="display:inline-block;padding:14px 20px;border-radius:8px;background:#23483d;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">Crear nueva contraseña</a></p>
-            <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#52635b;">Si el botón no funciona, copia este enlace en tu navegador:</p>
-            <p style="margin:0 0 24px;overflow-wrap:anywhere;font-size:13px;line-height:1.6;"><a href="{safe_url}" style="color:#23483d;">{safe_url}</a></p>
-            <p style="margin:0;font-size:14px;line-height:1.6;color:#52635b;">Si no solicitaste este cambio, ignora este correo. Tu contraseña seguirá igual.</p>
-          </td></tr>
-        </table>
-        <p style="max-width:560px;margin:16px auto 0;padding:0 12px;color:#66776f;font-size:12px;line-height:1.5;">Este mensaje se envió porque alguien solicitó restablecer una contraseña de Nexova.</p>
-      </td></tr>
-    </table>
-  </body>
-</html>""",
+        "text": (
+            "Recibimos una solicitud para restablecer tu contraseña. "
+            f"Abre este enlace (caduca en 30 minutos): {reset_url}\n\n"
+            "Si no solicitaste este cambio, ignora este mensaje."
+        ),
     }
-    request = urllib.request.Request(
+    request = Request(
         "https://api.resend.com/emails",
-        data=json.dumps(message).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=10) as response:
-        if response.status < 200 or response.status >= 300:
-            raise RuntimeError("Resend rejected the email request")
+    try:
+        with urlopen(request, timeout=10) as response:
+            if not 200 <= response.status < 300:
+                raise EmailDeliveryError("Resend rejected the email request")
+    except HTTPError as exc:
+        provider_message = _safe_provider_message(exc.read(4096))
+        raise EmailDeliveryError(f"Resend returned HTTP {exc.code}: {provider_message}") from None
+    except (URLError, TimeoutError) as exc:
+        raise EmailDeliveryError(f"Resend could not be reached ({type(exc).__name__})") from None

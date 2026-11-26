@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import SuppliersDB
-from .routes import suppliers, auth, users, profiles
+from .routes import suppliers, auth, users, profiles, incidents
 from .routes.suppliers import set_db as set_suppliers_db
 from .dependencies import set_db
 
@@ -31,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(profiles.router)
 app.include_router(suppliers.router)
+app.include_router(incidents.router)
 
 @app.on_event("shutdown")
 def shutdown_event():

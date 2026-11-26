@@ -427,3 +427,124 @@ La página del directorio debe permitirle a Patricia:
 ---
 
 _Documento interno — 4Geeks Academy · AI Engineering Track_
+
+---
+
+# BRIEFING — Gestor de Incidencias Centralizado · Nexova
+
+_Hito: integración de un gestor centralizado de incidencias en la plataforma interna._
+
+## Empresa y objetivo
+
+Nexova es una consultora de recursos humanos y adquisición de talento con 120 empleados, sede en Valencia y oficina en Miami. Sus líneas de negocio incluyen headhunting, outsourcing de equipos de soporte al cliente y formación corporativa. El gestor debe registrar incidencias técnicas y operativas, incluidas quejas de clientes, errores en selección y problemas del equipo de soporte externalizado.
+
+## Usuarios y necesidades
+
+- **Sergio Molina (CTO):** necesita una vista central de problemas técnicos y operativos que hoy llegan por email, Slack o comunicación verbal, para medir y mejorar los tiempos de resolución.
+- **Roberto Díaz (Customer Support Lead):** coordina 30 agentes que atienden incidencias de clientes. El equipo usa un helpdesk legado y no tiene una base de conocimiento centralizada.
+- **Laura Mendoza (CEO):** necesita saber cuántas incidencias críticas siguen abiertas, de qué oficina proceden y cuánto tiempo llevan sin resolverse.
+
+## Oficinas
+
+El campo `branch` acepta exactamente estos valores:
+
+| Valor | Nombre para mostrar |
+| --- | --- |
+| `central` | Central — sede Valencia |
+| `valencia_operations` | Valencia — Operaciones |
+| `miami_office` | Miami Office |
+| `remote` | Remoto (empleado sin sede fija) |
+
+Usa `central` si la incidencia no corresponde a una oficina concreta, por ejemplo, reportes internos de dirección o quejas de clientes sin sede asociada. `central` representa la sede central de Valencia; no crees otro valor para headquarters. Mantén `remote` visible y diferenciado de `central` y `valencia_operations`.
+
+## Categorías
+
+El campo `category` acepta exactamente uno de estos valores:
+
+| Valor | Descripción |
+| --- | --- |
+| `technical_failure` | Fallo de sistema o herramienta tecnológica, como ATS, HubSpot, Zendesk o infraestructura |
+| `process_error` | Error en un proceso operativo: selección, incorporación, formación o facturación |
+| `client_complaint` | Queja o reclamación de un cliente corporativo sobre el servicio |
+| `candidate_issue` | Problema reportado por o relacionado con un candidato en selección |
+| `staff_issue` | Incidencia interna de RR. HH.: ausencia, conflicto, accidente o baja |
+| `sla_breach` | Incumplimiento del SLA comprometido con un cliente |
+| `data_quality` | Error o inconsistencia en datos de candidatos, clientes o reportes |
+| `other` | Incidencia que no encaja en las categorías anteriores |
+
+## Estados y ciclo de vida
+
+| Estado | Significado |
+| --- | --- |
+| `open` | Incidencia registrada, aún sin responsable asignado |
+| `in_progress` | Asignada a un equipo o persona y en gestión activa |
+| `resolved` | Resuelta y confirmada por quien la reportó o por el responsable |
+| `discarded` | Registrada por error, duplicada o fuera de alcance |
+
+Transiciones válidas: `open` → `in_progress`, `open` → `discarded`, `in_progress` → `resolved` y `in_progress` → `discarded`. `resolved` y `discarded` son estados finales.
+
+## Orígenes
+
+| Valor | Cuándo se usa |
+| --- | --- |
+| `customer` | Reportada por un cliente corporativo que contrata servicios de Nexova |
+| `branch` | Reportada por personal de una oficina de Nexova |
+| `internal` | Detectada internamente por tecnología, operaciones o dirección |
+
+## Carga histórica desde CSV
+
+El CSV `incidents-nexova.csv`, del proyecto `incidents-file-analyzer` y ubicado en `content/contexts/incidents-file-analysis/`, contiene incidencias del helpdesk de soporte al cliente. Todas corresponden a clientes corporativos (`origin: "customer"`). El esquema del analizador usa campos, estados y categorías distintos: no insertes sus filas directamente. Reutiliza su lógica de validación y aplica las transformaciones descritas aquí antes de insertar. Descarta y reporta en consola los registros que no pasen la validación o no se puedan mapear.
+
+Para idempotencia, identifica registros con `ticket_id`; si falta, usa la combinación `title + created_at`.
+
+### Mapeo de campos
+
+| Campo CSV | Campo del modelo | Transformación |
+| --- | --- | --- |
+| `ticket_id` | — | Solo control de duplicados; no se almacena |
+| `description` | `title` | Primeros 120 caracteres, recortados; descarta el registro si queda vacío |
+| `description` | `description` | Copia literal |
+| `date` | `created_at` | Parsea `YYYY-MM-DD` como medianoche UTC; `updated_at` recibe el mismo instante al insertar |
+| — | `origin` | Siempre `customer` para estos registros |
+| — | `branch` | Siempre `central`, porque el CSV no contiene una oficina |
+
+### Mapeo de estados y categorías
+
+| CSV `status` | Modelo `status` |
+| --- | --- |
+| `OPEN` | `open` |
+| `CLOSED` | `resolved` |
+| `DISCARDED` | `discarded` |
+
+| CSV `category` | Modelo `category` |
+| --- | --- |
+| `TECHNICAL` | `technical_failure` |
+| `BILLING` | `process_error` |
+| `ACCESS` | `technical_failure` |
+| `HR_QUERY` | `process_error` |
+| `COMPLAINT` | `client_complaint` |
+
+## Conteos esperados tras la carga
+
+Después de cargar el CSV, `/api/incidents/summary` debe devolver los conteos del modelo correspondientes a los 96 registros válidos (se excluyen las filas inválidas del CSV original).
+
+| Estado del modelo | Conteo |
+| --- | ---: |
+| `open` | 27 |
+| `resolved` | 56 |
+| `discarded` | 13 |
+
+| Categoría del modelo | Conteo |
+| --- | ---: |
+| `technical_failure` | 49 |
+| `process_error` | 35 |
+| `client_complaint` | 12 |
+
+Estos son conteos post-transformación; el CSV de origen utiliza estados como `OPEN`/`CLOSED`/`DISCARDED` y categorías como `TECHNICAL`/`BILLING`.
+
+## Notas de implementación
+
+- Nexova opera en español en Valencia e inglés en Miami. Si los hitos previos incluyen soporte bilingüe, respétalo en el formulario y los mensajes de error.
+- `sla_breach` es una categoría crítica para Roberto y Laura; diseña el modelo para que añadir un filtro por ella sea sencillo. Las alertas automáticas quedan fuera de este proyecto.
+
+_Documento interno — 4Geeks Academy · AI Engineering Track_

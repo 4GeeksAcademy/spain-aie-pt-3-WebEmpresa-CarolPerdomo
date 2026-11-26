@@ -105,7 +105,7 @@ Same as registration response above.
 ### Users (Protected Routes - Requires Valid JWT Token)
 
 #### **POST /users/** ✅ Admin only
-Create a user account. The default role is `user`; admins may choose `admin` or `user`.
+Create a user account. The default role is `user`; admins may choose `admin`, `manager` or `user`.
 
 #### **GET /users/** ✅ Admin only
 List user accounts without password hashes.

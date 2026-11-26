@@ -9,7 +9,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
 import bcrypt
-from .config import get_setting
+from .config import load_project_env
+
+load_project_env()
 
 # SECRET_KEY es obligatorio desde el entorno
 SECRET_KEY = get_setting("SECRET_KEY")
@@ -44,9 +46,8 @@ class AuthService:
             "user_id": user_id,
             "email": email,
             "role": role,
-            "token_type": "access",
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         }
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 

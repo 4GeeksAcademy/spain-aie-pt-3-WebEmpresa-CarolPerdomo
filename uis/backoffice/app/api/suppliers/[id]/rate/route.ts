@@ -8,5 +8,5 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   return proxySupplierRequest(`/suppliers/${encodeURIComponent(id)}/rate`, {
     method: "PATCH",
     body: JSON.stringify(await request.json()),
-  });
+  }, request.headers.get("authorization"));
 }

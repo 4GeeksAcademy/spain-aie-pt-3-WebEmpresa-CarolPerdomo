@@ -1,7 +1,8 @@
 import type { Candidate, CandidatePayload, Note } from "@/types";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://playground.4geeks.com/tracker/api/v1";
+import { apiFetch } from "@/lib/auth-client";
+const API_URL = "/api/talent";
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers: { "Content-Type": "application/json", ...options?.headers } });
+  const response = await apiFetch(`${API_URL}${path}`, { ...options, headers: { "Content-Type": "application/json", ...options?.headers } });
   if (!response.ok) throw new Error((await response.text()) || `La petición falló (${response.status})`);
   if (response.status === 204) return undefined as T;
   return response.json();

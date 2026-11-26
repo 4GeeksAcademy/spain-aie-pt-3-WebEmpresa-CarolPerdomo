@@ -5,8 +5,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
+from uuid import uuid4
 
-os.environ.setdefault("SECRET_KEY", "test-only-secret-key-for-auth-http-tests")
+os.environ.setdefault("SECRET_KEY", "test-only-auth-http-key-longer-than-32-bytes")
 
 from fastapi import FastAPI
 import pytest
@@ -89,16 +90,17 @@ def request(app, method, path, token=None, body=None):
 
 @pytest.fixture
 def api():
-    with TemporaryDirectory(dir=Path(__file__).parent) as temp_dir:
-        db = SuppliersDB(Path(temp_dir) / "api.json")
-        try:
-            yield build_app(db), db
-        finally:
-            db.close()
+    db_path = Path(__file__).resolve().parents[1] / "data" / f"api-test-{uuid4().hex}.json"
+    db = SuppliersDB(db_path)
+    try:
+        yield build_app(db), db
+    finally:
+        db.close()
+        db_path.unlink(missing_ok=True)
 
 
-def test_roles_are_limited_to_admin_and_user():
-    assert {role.value for role in RoleEnum} == {"admin", "user"}
+def test_roles_include_admin_manager_and_user():
+    assert {role.value for role in RoleEnum} == {"admin", "manager", "user"}
 
 
 def test_supplier_contract_validation_filters_and_system_timestamps(api):
@@ -250,12 +252,35 @@ def test_auth_and_protected_routes_work_with_bearer_tokens(api):
     owner_record = db.get_user_by_id(owner["id"])
     assert all(field not in owner_record for field in ("name", "phone", "address"))
 
+    supplier_body = {
+        "name": "Example Supplier", "country": "Spain", "categories": ["job_boards"],
+        "monthly_rate": 1, "currency": "EUR", "status": "active",
+    }
+    status_code, created_supplier = request(
+        app, "POST", "/suppliers", token=owner_token, body=supplier_body,
+    )
+    assert status_code == 201
+    supplier_id = created_supplier["id"]
     assert request(app, "GET", "/suppliers", token=owner_token)[0] == 200
+    assert request(app, "GET", f"/suppliers/{supplier_id}", token=owner_token)[0] == 200
+    status_code, updated_rate = request(
+        app, "PATCH", f"/suppliers/{supplier_id}/rate", token=owner_token,
+        body={"monthly_rate": 2},
+    )
+    assert status_code == 200
+    assert updated_rate["monthly_rate"] == 2
+    status_code, updated_status = request(
+        app, "PATCH", f"/suppliers/{supplier_id}/status", token=owner_token,
+        body={"status": "suspended"},
+    )
+    assert status_code == 200
+    assert updated_status["status"] == "suspended"
+    assert request(app, "DELETE", f"/suppliers/{supplier_id}", token=owner_token)[0] == 204
     assert request(app, "GET", f"/profiles/{other['id']}", token=owner_token)[0] == 403
     assert request(app, "PUT", f"/profiles/{other['id']}", token=owner_token, body={"name": "Other"})[0] == 403
     assert request(app, "GET", f"/users/{other['id']}", token=owner_token)[0] == 403
     assert request(app, "PUT", f"/users/{other['id']}", token=owner_token, body={"email": "new-other@example.com"})[0] == 403
-    assert request(app, "PUT", f"/users/{owner['id']}", token=owner_token, body={"role": "manager"})[0] == 422
+    assert request(app, "PUT", f"/users/{owner['id']}", token=owner_token, body={"role": "manager"})[0] == 403
     assert request(app, "GET", "/users/", token=owner_token)[0] == 403
 
     status_code, registered_user = request(
@@ -282,6 +307,20 @@ def test_auth_and_protected_routes_work_with_bearer_tokens(api):
     assert created_user["role"] == "user"
     assert db.get_profile_by_user_id(created_user["id"])["user_id"] == created_user["id"]
 
+    status_code, manager_user = request(
+        app, "POST", "/users/", token=admin_token,
+        body={"email": "manager@example.com", "password": "password123", "role": "manager"},
+    )
+    assert status_code == 201
+    assert manager_user["role"] == "manager"
+
+    status_code, promoted_user = request(
+        app, "PUT", f"/users/{created_user['id']}", token=admin_token,
+        body={"role": "manager"},
+    )
+    assert status_code == 200
+    assert promoted_user["role"] == "manager"
+
     status_code, created_login = request(
         app, "POST", "/auth/login",
         body={"email": "created@example.com", "password": "password123"},
@@ -293,10 +332,6 @@ def test_auth_and_protected_routes_work_with_bearer_tokens(api):
     assert db.get_user_by_id(created_user["id"]) is None
     assert db.get_profile_by_user_id(created_user["id"]) is None
 
-    assert request(
-        app, "POST", "/users/", token=admin_token,
-        body={"email": "manager@example.com", "password": "password123", "role": "manager"},
-    )[0] == 422
     assert request(
         app, "POST", "/auth/register",
         body={"email": "registration@example.com", "password": "password123", "role": "admin"},
