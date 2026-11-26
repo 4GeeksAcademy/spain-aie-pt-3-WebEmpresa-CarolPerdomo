@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, validator, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, field_validator, model_validator
 from typing import Optional, List
 from enum import Enum
 from datetime import datetime
@@ -27,13 +27,12 @@ class AdminUserCreate(UserCreate):
     role: RoleEnum = RoleEnum.USER
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     email: str
     role: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class UserUpdate(BaseModel):
     """Fields editable on a user account; profile details stay on Profile."""
@@ -50,6 +49,8 @@ class ProfileCreate(BaseModel):
     experience_years: Optional[int] = Field(None, ge=0)
 
 class ProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     name: Optional[str] = None
@@ -60,9 +61,6 @@ class ProfileResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    
-    class Config:
-        from_attributes = True
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -115,7 +113,7 @@ class CategoryEnum(str, Enum):
 class SupplierBase(BaseModel):
     name: str = Field(..., min_length=1)
     country: CountryEnum
-    categories: List[CategoryEnum] = Field(..., min_items=1)
+    categories: List[CategoryEnum] = Field(..., min_length=1)
     monthly_rate: float = Field(..., gt=0)
     currency: CurrencyEnum
     status: StatusEnum
@@ -123,41 +121,38 @@ class SupplierBase(BaseModel):
     contact_email: Optional[str] = None
     notes: Optional[str] = None
 
-    @validator('contract_renewal_date')
-    def validate_date_format(cls, v):
-        if v:
+    @field_validator('contract_renewal_date')
+    @classmethod
+    def validate_date_format(cls, value):
+        if value:
             try:
-                datetime.strptime(v, '%Y-%m-%d')
+                datetime.strptime(value, '%Y-%m-%d')
             except ValueError:
                 raise ValueError('contract_renewal_date debe estar en formato YYYY-MM-DD')
-        return v
+        return value
 
-    @validator('currency')
-    def validate_currency_country(cls, v, values):
-        if 'country' in values:
-            country = values['country']
-            if country == CountryEnum.SPAIN and v != CurrencyEnum.EUR:
-                raise ValueError('Spain debe usar EUR')
-            if country == CountryEnum.USA and v != CurrencyEnum.USD:
-                raise ValueError('USA debe usar USD')
-        return v
+    @model_validator(mode="after")
+    def validate_currency_country(self):
+        if self.country == CountryEnum.SPAIN and self.currency != CurrencyEnum.EUR:
+            raise ValueError('Spain debe usar EUR')
+        if self.country == CountryEnum.USA and self.currency != CurrencyEnum.USD:
+            raise ValueError('USA debe usar USD')
+        return self
 
 class SupplierCreate(SupplierBase):
     pass
 
 class Supplier(SupplierBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
 class SupplierUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     monthly_rate: Optional[float] = Field(None, gt=0)
     status: Optional[StatusEnum] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ============ Incident Management Models ============

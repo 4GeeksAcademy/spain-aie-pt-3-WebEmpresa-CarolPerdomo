@@ -6,7 +6,7 @@ import hashlib
 import logging
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import quote
 
@@ -83,7 +83,7 @@ def forgot_password(payload: ForgotPasswordRequest, http_request: Request, backg
     db.record_password_audit("reset_requested", get_client_ip(http_request), user['id'] if user else None)
     if user:
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
         db.create_password_reset_token(user['id'], hashlib.sha256(token.encode()).hexdigest(), expires_at)
         reset_page = os.getenv("PASSWORD_RESET_URL", "http://localhost:3001/reset-password")
         reset_url = f"{reset_page}?token={quote(token)}"
@@ -95,11 +95,11 @@ def forgot_password(payload: ForgotPasswordRequest, http_request: Request, backg
 def reset_password(payload: ResetPasswordRequest, http_request: Request, db: SuppliersDB = Depends(get_db)):
     token_hash = hashlib.sha256(payload.token.encode()).hexdigest()
     user_id = db.get_password_reset_token_user_id(token_hash)
-    if not db.password_reset_token_is_valid(token_hash, datetime.utcnow()):
+    if not db.password_reset_token_is_valid(token_hash, datetime.now(timezone.utc)):
         db.record_password_audit("reset_rejected", get_client_ip(http_request), user_id)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El enlace de restablecimiento no es válido, ha caducado o ya fue utilizado.")
     password_hash = AuthService.hash_password(payload.new_password)
-    if not db.consume_password_reset_token(token_hash, password_hash, datetime.utcnow()):
+    if not db.consume_password_reset_token(token_hash, password_hash, datetime.now(timezone.utc)):
         db.record_password_audit("reset_rejected", get_client_ip(http_request), user_id)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El enlace de restablecimiento no es válido, ha caducado o ya fue utilizado.")
     db.record_password_audit("reset_completed", get_client_ip(http_request), user_id)

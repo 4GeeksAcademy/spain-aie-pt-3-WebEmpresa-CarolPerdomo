@@ -1,3 +1,4 @@
+import os
 from tinydb import TinyDB, Query
 from pathlib import Path
 from datetime import datetime, timezone
@@ -9,7 +10,8 @@ from .models import (
     IncidentOriginEnum, IncidentBranchEnum,
 )
 
-DB_PATH = Path(__file__).resolve().parents[1] / "data" / "suppliers.json"
+DEFAULT_DB_PATH = Path(__file__).resolve().parents[1] / "data" / "suppliers.json"
+DB_PATH = Path(os.environ.get("NEXOVA_DB_PATH", str(DEFAULT_DB_PATH))).expanduser().resolve()
 DB_PATH.parent.mkdir(exist_ok=True)
 
 class SuppliersDB:
@@ -23,6 +25,17 @@ class SuppliersDB:
         self.password_reset_tokens_table = self.db.table('password_reset_tokens')
         self.password_audit_table = self.db.table('password_audit')
         self._password_lock = RLock()
+
+    @staticmethod
+    def _utc_now() -> datetime:
+        return datetime.now(timezone.utc)
+
+    @staticmethod
+    def _parse_utc(value: str) -> datetime:
+        parsed = datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
 
     # ============ User Operations ============
     
@@ -52,7 +65,7 @@ class SuppliersDB:
             'email': email,
             'password': hashed_password,
             'role': role,
-            'created_at': datetime.utcnow().isoformat()
+            'created_at': self._utc_now().isoformat()
         }
         user_id = self.users_table.insert(new_user)
         new_user['id'] = user_id
@@ -71,7 +84,7 @@ class SuppliersDB:
             'address': None,
             'specialization': None,
             'experience_years': None,
-            'created_at': datetime.utcnow().isoformat(),
+            'created_at': self._utc_now().isoformat(),
             'updated_at': None
         }
         profile_id = self.profiles_table.insert(new_profile)
@@ -116,13 +129,13 @@ class SuppliersDB:
         with self._password_lock:
             Token = Query()
             self.password_reset_tokens_table.update(
-                {'used_at': datetime.utcnow().isoformat()},
+                {'used_at': self._utc_now().isoformat()},
                 (Token.user_id == user_id) & (Token.used_at == None),
             )
             self.password_reset_tokens_table.insert({
                 'user_id': user_id,
                 'token_hash': token_hash,
-                'created_at': datetime.utcnow().isoformat(),
+                'created_at': self._utc_now().isoformat(),
                 'expires_at': expires_at.isoformat(),
                 'used_at': None,
             })
@@ -135,7 +148,7 @@ class SuppliersDB:
             if not matches:
                 return False
             record = matches[0]
-            if record.get('used_at') or datetime.fromisoformat(record['expires_at']) <= now:
+            if record.get('used_at') or self._parse_utc(record['expires_at']) <= self._parse_utc(now.isoformat()):
                 return False
             user_id = record['user_id']
             if not self.get_user_by_id(user_id):
@@ -154,7 +167,7 @@ class SuppliersDB:
             if not matches:
                 return False
             record = matches[0]
-            return not record.get('used_at') and datetime.fromisoformat(record['expires_at']) > now and bool(self.get_user_by_id(record['user_id']))
+            return not record.get('used_at') and self._parse_utc(record['expires_at']) > self._parse_utc(now.isoformat()) and bool(self.get_user_by_id(record['user_id']))
 
     def get_password_reset_token_user_id(self, token_hash: str) -> Optional[int]:
         Token = Query()
@@ -165,7 +178,7 @@ class SuppliersDB:
         self.password_audit_table.insert({
             'event': event,
             'user_id': user_id,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': self._utc_now().isoformat(),
             'client_ip': client_ip,
         })
 
@@ -177,7 +190,7 @@ class SuppliersDB:
             self.users_table.update({'password': password_hash}, doc_ids=[user_id])
             Token = Query()
             self.password_reset_tokens_table.update(
-                {'used_at': datetime.utcnow().isoformat()},
+                {'used_at': self._utc_now().isoformat()},
                 (Token.user_id == user_id) & (Token.used_at == None),
             )
             return True
@@ -202,7 +215,7 @@ class SuppliersDB:
         """Update user's profile."""
         allowed_fields = {'name', 'phone', 'address', 'specialization', 'experience_years'}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
-        updates['updated_at'] = datetime.utcnow().isoformat()
+        updates['updated_at'] = self._utc_now().isoformat()
         
         Profile = Query()
         self.profiles_table.update(updates, (Profile.user_id == user_id))
@@ -252,12 +265,8 @@ class SuppliersDB:
 
     # ============ Incident Operations ============
 
-    @staticmethod
-    def _utc_now() -> str:
-        return datetime.now(timezone.utc).isoformat()
-
     def create_incident(self, incident_data: IncidentCreate, created_at: Optional[str] = None) -> dict:
-        now = created_at or self._utc_now()
+        now = created_at or self._utc_now().isoformat()
         new_incident = incident_data.model_dump(mode="json")
         new_incident.update({"created_at": now, "updated_at": now})
         doc_id = self.incidents_table.insert(new_incident)
@@ -286,7 +295,7 @@ class SuppliersDB:
         if not incident:
             return None
         self.incidents_table.update(
-            {"status": status, "updated_at": self._utc_now()},
+            {"status": status, "updated_at": self._utc_now().isoformat()},
             doc_ids=[incident_id],
         )
         return self.get_incident_by_id(incident_id)

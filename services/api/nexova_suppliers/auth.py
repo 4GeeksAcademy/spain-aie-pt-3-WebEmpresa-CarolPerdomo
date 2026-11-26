@@ -4,7 +4,7 @@ Authentication service for Nexova API.
 Manages JWT token generation, password hashing, and user authentication.
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
 import bcrypt
@@ -42,8 +42,8 @@ class AuthService:
             "user_id": user_id,
             "email": email,
             "role": role,
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         }
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     

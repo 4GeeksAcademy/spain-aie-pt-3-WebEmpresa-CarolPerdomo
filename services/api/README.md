@@ -339,4 +339,8 @@ Los perfiles utilizan los campos `name`, `phone`, `address`, `specialization` y 
 
 ### Pruebas
 
-Última ejecución registrada: `4 passed`. Se registraron 15 warnings de pytest, pendientes de revisión.
+Última verificación registrada para la gestión de incidencias y las pruebas HTTP de autenticación y usuarios: `9 passed`, sin warnings. Ejecuta desde `services/api/`:
+
+```bash
+python -m pytest -p no:cacheprovider -p no:tmpdir tests/test_incidents.py tests/test_auth_http.py tests/test_user_updates.py -q
+```
