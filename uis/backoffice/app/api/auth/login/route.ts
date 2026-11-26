@@ -25,20 +25,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = NextResponse.json({
+    return NextResponse.json({
       user: data.user,
+      access_token: data.access_token,
       message: "Inicio de sesión correcto",
     });
-
-    result.cookies.set("access_token", data.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24,
-    });
-
-    return result;
   } catch {
     return NextResponse.json(
       { detail: "No se pudo conectar con FastAPI" },

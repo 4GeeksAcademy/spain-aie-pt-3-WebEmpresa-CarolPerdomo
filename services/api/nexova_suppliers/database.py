@@ -1,19 +1,41 @@
+import os
 from tinydb import TinyDB, Query
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
+from threading import RLock
 from typing import Optional
-from .models import Supplier, SupplierCreate, CategoryEnum, StatusEnum
-from .auth import AuthService
+from .models import (
+    Supplier, SupplierCreate, CategoryEnum, StatusEnum,
+    IncidentCreate, IncidentStatusEnum, IncidentCategoryEnum,
+    IncidentOriginEnum, IncidentBranchEnum,
+)
 
-DB_PATH = Path("data") / "suppliers.json"
+DEFAULT_DB_PATH = Path(__file__).resolve().parents[1] / "data" / "suppliers.json"
+DB_PATH = Path(os.environ.get("NEXOVA_DB_PATH", str(DEFAULT_DB_PATH))).expanduser().resolve()
 DB_PATH.parent.mkdir(exist_ok=True)
 
 class SuppliersDB:
     def __init__(self, db_path=DB_PATH):
         self.db = TinyDB(str(db_path))
         self.suppliers_table = self.db.table('suppliers')
+        self.incidents_table = self.db.table('incidents')
+        self.incident_imports_table = self.db.table('incident_imports')
         self.users_table = self.db.table('users')
         self.profiles_table = self.db.table('profiles')
+        self.password_reset_tokens_table = self.db.table('password_reset_tokens')
+        self.password_audit_table = self.db.table('password_audit')
+        self._password_lock = RLock()
+
+    @staticmethod
+    def _utc_now() -> datetime:
+        return datetime.now(timezone.utc)
+
+    @staticmethod
+    def _parse_utc(value: str) -> datetime:
+        parsed = datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
 
     # ============ User Operations ============
     
@@ -31,6 +53,8 @@ class SuppliersDB:
         return result_or_list
     
     def create_user(self, email: str, password: str, role: str = "user"):
+        from .auth import AuthService
+
         # Check if email already exists
         User = Query()
         if self.users_table.search(User.email == email):
@@ -41,7 +65,7 @@ class SuppliersDB:
             'email': email,
             'password': hashed_password,
             'role': role,
-            'created_at': datetime.utcnow().isoformat()
+            'created_at': self._utc_now().isoformat()
         }
         user_id = self.users_table.insert(new_user)
         new_user['id'] = user_id
@@ -60,7 +84,7 @@ class SuppliersDB:
             'address': None,
             'specialization': None,
             'experience_years': None,
-            'created_at': datetime.utcnow().isoformat(),
+            'created_at': self._utc_now().isoformat(),
             'updated_at': None
         }
         profile_id = self.profiles_table.insert(new_profile)
@@ -99,6 +123,77 @@ class SuppliersDB:
         
         self.users_table.update(updates, doc_ids=[user_id])
         return self.get_user_by_id(user_id)
+
+    def create_password_reset_token(self, user_id: int, token_hash: str, expires_at: datetime) -> None:
+        """Keep only a hash of the reset token and invalidate older links."""
+        with self._password_lock:
+            Token = Query()
+            self.password_reset_tokens_table.update(
+                {'used_at': self._utc_now().isoformat()},
+                (Token.user_id == user_id) & (Token.used_at == None),
+            )
+            self.password_reset_tokens_table.insert({
+                'user_id': user_id,
+                'token_hash': token_hash,
+                'created_at': self._utc_now().isoformat(),
+                'expires_at': expires_at.isoformat(),
+                'used_at': None,
+            })
+
+    def consume_password_reset_token(self, token_hash: str, password_hash: str, now: datetime) -> bool:
+        """Atomically validate a token, change the password, and consume it."""
+        with self._password_lock:
+            Token = Query()
+            matches = self.password_reset_tokens_table.search(Token.token_hash == token_hash)
+            if not matches:
+                return False
+            record = matches[0]
+            if record.get('used_at') or self._parse_utc(record['expires_at']) <= self._parse_utc(now.isoformat()):
+                return False
+            user_id = record['user_id']
+            if not self.get_user_by_id(user_id):
+                return False
+            self.users_table.update({'password': password_hash}, doc_ids=[user_id])
+            self.password_reset_tokens_table.update(
+                {'used_at': now.isoformat()},
+                (Token.user_id == user_id) & (Token.used_at == None),
+            )
+            return True
+
+    def password_reset_token_is_valid(self, token_hash: str, now: datetime) -> bool:
+        with self._password_lock:
+            Token = Query()
+            matches = self.password_reset_tokens_table.search(Token.token_hash == token_hash)
+            if not matches:
+                return False
+            record = matches[0]
+            return not record.get('used_at') and self._parse_utc(record['expires_at']) > self._parse_utc(now.isoformat()) and bool(self.get_user_by_id(record['user_id']))
+
+    def get_password_reset_token_user_id(self, token_hash: str) -> Optional[int]:
+        Token = Query()
+        record = self.password_reset_tokens_table.get(Token.token_hash == token_hash)
+        return record.get('user_id') if record else None
+
+    def record_password_audit(self, event: str, client_ip: Optional[str], user_id: Optional[int] = None) -> None:
+        self.password_audit_table.insert({
+            'event': event,
+            'user_id': user_id,
+            'timestamp': self._utc_now().isoformat(),
+            'client_ip': client_ip,
+        })
+
+    def update_password(self, user_id: int, password_hash: str) -> bool:
+        """Change a user's password and invalidate any outstanding reset links."""
+        with self._password_lock:
+            if not self.get_user_by_id(user_id):
+                return False
+            self.users_table.update({'password': password_hash}, doc_ids=[user_id])
+            Token = Query()
+            self.password_reset_tokens_table.update(
+                {'used_at': self._utc_now().isoformat()},
+                (Token.user_id == user_id) & (Token.used_at == None),
+            )
+            return True
     
     def delete_user(self, user_id: int) -> bool:
         """Delete user and their profile."""
@@ -120,7 +215,7 @@ class SuppliersDB:
         """Update user's profile."""
         allowed_fields = {'name', 'phone', 'address', 'specialization', 'experience_years'}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
-        updates['updated_at'] = datetime.utcnow().isoformat()
+        updates['updated_at'] = self._utc_now().isoformat()
         
         Profile = Query()
         self.profiles_table.update(updates, (Profile.user_id == user_id))
@@ -167,6 +262,64 @@ class SuppliersDB:
 
     def delete_supplier(self, supplier_id: int) -> bool:
         return bool(self.suppliers_table.remove(doc_ids=[supplier_id]))
+
+    # ============ Incident Operations ============
+
+    def create_incident(self, incident_data: IncidentCreate, created_at: Optional[str] = None) -> dict:
+        now = created_at or self._utc_now().isoformat()
+        new_incident = incident_data.model_dump(mode="json")
+        new_incident.update({"created_at": now, "updated_at": now})
+        doc_id = self.incidents_table.insert(new_incident)
+        return {**new_incident, "id": doc_id}
+
+    def get_incident_by_id(self, incident_id: int) -> Optional[dict]:
+        incident = self.incidents_table.get(doc_id=incident_id)
+        return {**incident, "id": incident.doc_id} if incident else None
+
+    def get_all_incidents(
+        self,
+        status: Optional[str] = None,
+        origin: Optional[str] = None,
+        branch: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> list:
+        incidents = [
+            {**incident, "id": incident.doc_id}
+            for incident in self.incidents_table.all()
+        ]
+        filters = {"status": status, "origin": origin, "branch": branch, "category": category}
+        return [item for item in incidents if all(value is None or item.get(key) == value for key, value in filters.items())]
+
+    def update_incident_status(self, incident_id: int, status: str) -> Optional[dict]:
+        incident = self.get_incident_by_id(incident_id)
+        if not incident:
+            return None
+        self.incidents_table.update(
+            {"status": status, "updated_at": self._utc_now().isoformat()},
+            doc_ids=[incident_id],
+        )
+        return self.get_incident_by_id(incident_id)
+
+    def get_incident_summary(self) -> dict:
+        incidents = self.incidents_table.all()
+        def count_by(field: str, allowed_values) -> dict:
+            return {
+                value.value: sum(1 for incident in incidents if incident.get(field) == value.value)
+                for value in allowed_values
+            }
+        return {
+            "total": len(incidents),
+            "by_status": count_by("status", IncidentStatusEnum),
+            "by_category": count_by("category", IncidentCategoryEnum),
+            "by_origin": count_by("origin", IncidentOriginEnum),
+            "by_branch": count_by("branch", IncidentBranchEnum),
+        }
+
+    def has_incident_import(self, source_key: str) -> bool:
+        return self.incident_imports_table.contains(Query().source_key == source_key)
+
+    def record_incident_import(self, source_key: str, incident_id: int) -> None:
+        self.incident_imports_table.insert({"source_key": source_key, "incident_id": incident_id})
 
     def close(self):
         self.db.close()

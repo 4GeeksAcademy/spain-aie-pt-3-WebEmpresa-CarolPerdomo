@@ -2,9 +2,9 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from uuid import uuid4
 
-os.environ.setdefault("SECRET_KEY", "test-only-secret-key-for-auth-http-tests")
+os.environ.setdefault("SECRET_KEY", "test-only-auth-http-key-longer-than-32-bytes")
 
 from fastapi import FastAPI
 import pytest
@@ -84,12 +84,13 @@ def request(app, method, path, token=None, body=None):
 
 @pytest.fixture
 def api():
-    with TemporaryDirectory() as temp_dir:
-        db = SuppliersDB(Path(temp_dir) / "api.json")
-        try:
-            yield build_app(db), db
-        finally:
-            db.close()
+    db_path = Path(__file__).resolve().parents[1] / "data" / f"api-test-{uuid4().hex}.json"
+    db = SuppliersDB(db_path)
+    try:
+        yield build_app(db), db
+    finally:
+        db.close()
+        db_path.unlink(missing_ok=True)
 
 
 def test_roles_include_admin_manager_and_user():

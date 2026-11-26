@@ -52,6 +52,8 @@ The API will be available at: **http://localhost:8000**
 ## 🔑 Protected API Routes (16 Total)
 
 ### Users
+- `GET /auth/me` - Get the authenticated account email and profile
+- `POST /auth/change-password` - Change password with a Bearer token and current password
 - `POST /users/` - Create a user (admin only; defaults to role `user`)
 - `GET /users/` - List users without password hashes (admin only)
 - `GET /users/me` - Get current user
@@ -78,6 +80,8 @@ The API will be available at: **http://localhost:8000**
 ### Authentication
 - `POST /auth/register` - Create new user account
 - `POST /auth/login` - Login and get JWT token
+- `POST /auth/forgot-password` - Request a reset link; always returns the same confirmation message
+- `POST /auth/reset-password` - Set a new password with a valid, unused reset token
 
 
 ## 🧪 Testing
@@ -184,13 +188,27 @@ services/api/
 
 ## 🌍 Environment Variables
 
+Copy the repository-root `.env.example` to `.env`, fill in its values locally, and keep `.env` ignored by Git. The API loads that root file when it starts. `RESEND_API_KEY` is used only by the backend; for production, `EMAIL_FROM` must use a sender/domain verified in Resend. Set `PASSWORD_RESET_URL` to the frontend's `/reset-password` page.
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `SECRET_KEY` | ✅ Yes | Secret key for JWT signing (min 32 chars recommended) |
+| `SECRET_KEY` | Yes | JWT signing secret. |
+| `RESEND_API_KEY` | For email delivery | Server-side Resend API key; never expose it to frontend code. |
+| `EMAIL_FROM` | No | Verified sender address; defaults to Resend's onboarding sender for local development. |
+| `PASSWORD_RESET_URL` | No | Frontend reset page; defaults to `http://localhost:3001/reset-password`. |
+| `PASSWORD_RESET_TOKEN_TTL_MINUTES` | No | Reset token lifetime in minutes (15–60; default 30). |
+
+The API records reset requests, successful/failed reset attempts, and password changes in TinyDB's `password_audit` table with a timestamp, client IP, event name, and user ID when known.
+
+Resend delivery uses its `POST https://api.resend.com/emails` endpoint with bearer authentication. See [Resend's official Email API guide](https://resend.com/features/email-api).
 
 **Example .env file:**
 ```bash
-export SECRET_KEY="production-secret-key-change-regularly-12345"
+SECRET_KEY="replace-with-a-random-secret-of-at-least-32-characters"
+RESEND_API_KEY="re_replace_with_your_resend_api_key"
+EMAIL_FROM="Nexova <onboarding@resend.dev>"
+PASSWORD_RESET_URL="http://localhost:3001/reset-password"
+PASSWORD_RESET_TOKEN_TTL_MINUTES="30"
 ```
 
 ## 🔧 Configuration
@@ -269,6 +287,18 @@ Part of Nexova Solutions projects. See root LICENSE file.
 
 ## API actualizada - Noviembre 2026
 
+## Gestión centralizada de incidencias
+
+La API expone endpoints protegidos por JWT bajo `/api/incidents` y persiste las incidencias en la tabla `incidents` de TinyDB. El identificador y las fechas UTC de creación y actualización los genera el servicio. Los valores de categoría, estado, origen y sede están restringidos a los definidos en `nexova-BRIEFING.es.md`.
+
+- `POST /api/incidents`: crea una incidencia y responde `400` con un mensaje claro si faltan campos o hay valores no permitidos.
+- `GET /api/incidents`: lista incidencias; admite filtros `status`, `origin`, `branch` y `category`.
+- `GET /api/incidents/{id}`: devuelve el detalle o `404` si no existe.
+- `PATCH /api/incidents/{id}/status`: valida las transiciones permitidas del ciclo de vida.
+- `GET /api/incidents/summary`: devuelve total y conteos por estado, categoría, origen y sede, incluidos los ceros.
+
+Carga histórica (desde la raíz del repositorio): `python scripts/seed_incidents.py`. El script valida el CSV, transforma los campos según el briefing, omite filas inválidas y duplicados, y no almacena ni imprime direcciones de email.
+
 ### Modelos de datos
 
 Los datos de autenticación se almacenan en `User`:
@@ -309,4 +339,8 @@ Los perfiles utilizan los campos `name`, `phone`, `address`, `specialization` y 
 
 ### Pruebas
 
-Última ejecución registrada: `4 passed`. Se registraron 15 warnings de pytest, pendientes de revisión.
+Última verificación registrada para la gestión de incidencias y las pruebas HTTP de autenticación y usuarios: `9 passed`, sin warnings. Ejecuta desde `services/api/`:
+
+```bash
+python -m pytest -p no:cacheprovider -p no:tmpdir tests/test_incidents.py tests/test_auth_http.py tests/test_user_updates.py -q
+```
