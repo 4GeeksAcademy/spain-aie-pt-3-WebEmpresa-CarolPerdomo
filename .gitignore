@@ -1,6 +1,8 @@
 node_modules/
 dist/
 *.log
+.env
+data/
 # Python
 __pycache__/
 *.py[cod]

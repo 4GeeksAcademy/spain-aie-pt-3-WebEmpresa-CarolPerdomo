@@ -7,6 +7,7 @@
 
 ## Implemented
 
+### Frontend
 - `index.html` contains a Spanish corporate landing page with service descriptions, responsive Tailwind utility classes, images with alt text, and Organization JSON-LD.
 - `application.html` contains a company-services diagnostic form.
 - `validation.js` validates fields in the company form, exposes field/status messages, supports reset, and simulates successful submission in the browser.
@@ -25,6 +26,7 @@
 
 ## Internal Authentication Verification
 
+### Frontend (Verified ✓)
 - `npm run build --prefix uis/website` — passed.
 - `npm run build --prefix uis/backoffice` — passed.
 - `npm run lint --prefix uis/website` — passed.
@@ -141,7 +143,28 @@
   - User-Profile auto-creation working
   - FastAPI app initialization successful
 
-## Known Gaps Against the Current Context
+### Backend API (Verified ✓)
+- `uv add` all dependencies: fastapi, uvicorn, tinydb, pydantic, bcrypt, python-jose[cryptography], email-validator, pydantic-settings — installed.
+- API server starts with `uv run uvicorn main:app --port 8000` — confirmed running at http://localhost:8000.
+- Health endpoint `/health` — returns 200 with service info.
+- User registration `POST /users` — creates user + profile with bcrypt-hashed password, returns 201.
+- Login `POST /auth/login` — accepts email/password, returns JWT token with 30-min TTL, status 200.
+- Authentication `/auth/me` with valid token — returns user email, role, profile, status 200.
+- Protected endpoint without token — returns 403 "Not authenticated".
+- Protected endpoint with invalid token — returns 401 "Invalid or expired token".
+- Duplicate email registration — returns 400 "Email already registered".
+- Wrong password login — returns 401 "Invalid email or password".
+- User list `GET /users` (protected) — returns all users, status 200.
+- User detail `GET /users/{id}` (protected) — returns user with profile, status 200.
+- Profile get `GET /profiles/me` (protected) — returns user's profile, status 200.
+- Profile update `PUT /profiles/me` (protected) — updates name/phone/address, returns 200.
+- Interactive docs `/docs` — Swagger UI loads successfully.
+- Python syntax check — all modules compile without errors.
+- File structure — `/services/` organized with core, auth, users, profiles packages.
+
+### Test Scripts
+- `test_api.sh` created with curl-based endpoint tests (executable).
+- Manual verification tests completed successfully (registration → login → protected endpoints).
 
 - The form collects company and service-request details; it does not collect the required candidate profile fields from `CONTEXT.md`.
 - The original root landing page CTA leads to that company-services form. The new `uis/website/` has a separate talent contact anchor, but currently uses email rather than a structured candidate form.
