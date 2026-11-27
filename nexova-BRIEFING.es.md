@@ -548,3 +548,138 @@ Estos son conteos post-transformación; el CSV de origen utiliza estados como `O
 - `sla_breach` es una categoría crítica para Roberto y Laura; diseña el modelo para que añadir un filtro por ella sea sencillo. Las alertas automáticas quedan fuera de este proyecto.
 
 _Documento interno — 4Geeks Academy · AI Engineering Track_
+
+---
+
+# BRIEFING — Hito 5: Gestión de Inventario Backend con ORM y Doble Base de Datos
+## Empresa: Nexova
+
+> **Contexto de proyecto:** Este hito extiende el servicio FastAPI y la autenticación ya existentes en el monorepo. No se debe iniciar un repositorio nuevo ni rehacer esos componentes.
+>
+> **Ticket NXV-0201 — Sergio Molina (CTO):** Nexova necesita una API de inventario de equipos y materiales. Una entrada registra una compra o entrega recibida; una salida registra una asignación a un empleado o un consumo. El stock se deriva del historial de órdenes y no se puede modificar directamente. Todas las rutas se agrupan bajo `/inventory`. Cada orden debe guardar el UUID del usuario de TinyDB que la creó.
+
+## Empresa y problema
+
+Nexova cuenta con unos 120 empleados entre Valencia y Miami, seis oficinas, 30 agentes de soporte externalizados y ciclos de contratación constantes. IT y Operaciones carecen de visibilidad fiable sobre el hardware y los materiales disponibles, sus asignaciones y consumos. Se producen equipos extraviados o asignados por duplicado y faltantes de material sin aviso.
+
+El sistema mantendrá la autenticación y los usuarios en TinyDB, y almacenará productos y órdenes de inventario en Supabase (PostgreSQL). FastAPI deberá mantener activas ambas conexiones y utilizar cada una para los datos que le corresponden. No se deben replicar usuarios en Supabase.
+
+## Arquitectura y límites
+
+- Usa SQLModel como ORM, que combina SQLAlchemy con los tipos de Pydantic. No uses SQLAlchemy directamente.
+- Mantén las rutas de inventario en un `APIRouter` con prefijo `/inventory` y regístralo en la aplicación existente.
+- Los modelos ORM y los schemas Pydantic de request/response deben estar en archivos separados.
+- Ningún endpoint debe devolver directamente un objeto ORM.
+- Las claves foráneas entre activos y órdenes deben aplicarse en PostgreSQL.
+- La autenticación existente sigue usando TinyDB; `user_uuid` en cada orden referencia el UUID de ese sistema.
+
+## Entidades y campos
+
+Usa estos nombres exactamente en modelos, schemas y respuestas.
+
+### `Asset` (equivale a `Product` en documentación previa)
+
+| Campo | Tipo | Reglas |
+| --- | --- | --- |
+| `id` | `int` | Clave primaria autoincremental. |
+| `name` | `str` | Nombre del activo, por ejemplo, `Portátil 14" Business`, `Ratón ergonómico` o `Resma de papel A4`. |
+| `sku` | `str` | Código único, por ejemplo, `NXV-IT-001` o `NXV-OFF-003`. |
+| `category` | `str` | `hardware`, `peripherals`, `office_supplies` o `training_materials`. |
+| `office` | `str` | `Valencia` o `Miami`. |
+| `current_stock` | `int` | Calculado desde las órdenes; no se almacena. Solo aparece en el schema de respuesta. |
+
+### `AssetEntry` (equivale a `InboundOrder` en documentación previa)
+
+Representa una compra o entrega de proveedor recibida por Nexova.
+
+| Campo | Tipo | Reglas |
+| --- | --- | --- |
+| `id` | `int` | Clave primaria autoincremental. |
+| `asset_id` | `int` | Clave foránea a `Asset`. |
+| `quantity` | `int` | Unidades recibidas. |
+| `supplier` | `str` | Nombre del proveedor o vendedor. |
+| `office` | `str` | `Valencia` o `Miami`; oficina receptora. |
+| `created_at` | `datetime` | Se establece automáticamente al crear la orden. |
+| `user_uuid` | `str` | UUID del usuario de TinyDB responsable de registrar la entrada. |
+
+### `AssetExit` (equivale a `OutboundOrder` en documentación previa)
+
+Representa la asignación de un activo a un empleado o un evento de consumo.
+
+| Campo | Tipo | Reglas |
+| --- | --- | --- |
+| `id` | `int` | Clave primaria autoincremental. |
+| `asset_id` | `int` | Clave foránea a `Asset`. |
+| `quantity` | `int` | Unidades asignadas o consumidas. |
+| `exit_type` | `str` | `allocation` (asignación) o `consumption` (consumo). |
+| `assigned_to` | `str \| None` | Nombre o ID del empleado para `allocation`; nulo para `consumption`. |
+| `office` | `str` | `Valencia` o `Miami`. |
+| `created_at` | `datetime` | Se establece automáticamente al crear la orden. |
+| `user_uuid` | `str` | UUID del usuario de TinyDB responsable de registrar la salida. |
+
+## API de inventario
+
+Todos los endpoints están bajo `/inventory` y se implementan en `services/routers/inventory.py`.
+
+| Método | Ruta | Comportamiento |
+| --- | --- | --- |
+| `GET` | `/inventory/products` | Lista todos los activos e incluye `current_stock` calculado. |
+| `POST` | `/inventory/products` | Registra un activo nuevo. |
+| `GET` | `/inventory/products/{id}` | Devuelve un activo y su stock actual. |
+| `POST` | `/inventory/orders/inbound` | Registra una entrada `AssetEntry`. |
+| `POST` | `/inventory/orders/outbound` | Registra una salida `AssetExit`. |
+| `GET` | `/inventory/orders` | Lista entradas y salidas con los datos del activo. |
+
+## Reglas de negocio y validación
+
+1. Para cada activo, `current_stock = SUM(AssetEntry.quantity) - SUM(AssetExit.quantity)`. Se calcula al consultar y nunca se persiste como columna editable.
+2. Rechaza una salida que supere el stock disponible antes de escribir en la base de datos. Responde `HTTP 400` con el mensaje exacto: `Insufficient stock for asset '{name}'. Available: {available}, requested: {quantity}.`.
+3. `assigned_to` es obligatorio cuando `exit_type = "allocation"` y debe ser nulo cuando `exit_type = "consumption"`. Valídalo en el schema o en la lógica de ruta.
+4. No crees una tabla o modelo de usuarios en SQLModel/Supabase. Los `user_uuid` hacen referencia a usuarios guardados en TinyDB.
+5. Las oficinas `Valencia` y `Miami` coexisten en las mismas tablas; usa `office` para filtrar cuando corresponda.
+6. El campo `office` debe estar tanto en los modelos como en los schemas de respuesta.
+
+## Datos semilla de desarrollo
+
+Crea al menos estos seis activos:
+
+| name | sku | category | office |
+| --- | --- | --- | --- |
+| Portátil 14" Business | `NXV-IT-001` | `hardware` | Valencia |
+| Portátil 14" Business | `NXV-IT-002` | `hardware` | Miami |
+| Ratón ergonómico | `NXV-PER-001` | `peripherals` | Valencia |
+| Hub USB-C | `NXV-PER-002` | `peripherals` | Miami |
+| Resma de papel A4 | `NXV-OFF-001` | `office_supplies` | Valencia |
+| Cuaderno de formación en liderazgo | `NXV-TRN-001` | `training_materials` | Valencia |
+
+Registra al menos cuatro entradas: dos para `NXV-IT-001` (por ejemplo, 10 y 5 unidades) y una para cada uno de otros dos activos. Usa proveedores como `TechDistrib Valencia S.L.` y `Office Depot Miami`.
+
+Registra al menos tres salidas. Incluye una `allocation` con `assigned_to` y una `consumption` con `assigned_to` nulo. Las salidas no pueden superar las entradas sembradas.
+
+## Estructura indicada para `services/`
+
+```text
+services/
+├── main.py
+├── database.py          # TinyDB, motor SQLModel y dependencia get_db
+├── models.py            # Asset, AssetEntry y AssetExit (SQLModel)
+├── schemas.py           # Schemas Pydantic de request/response
+└── routers/
+    └── inventory.py     # APIRouter(prefix="/inventory")
+```
+
+La estructura describe la organización del servicio; debe adaptarse al monorepo existente sin duplicar ni reemplazar los componentes ya implementados.
+
+## Criterios de aceptación
+
+- Los endpoints funcionales de inventario responden bajo `/inventory`.
+- Las relaciones y claves foráneas se aplican a nivel de base de datos.
+- TinyDB y Supabase permanecen conectadas y cada tipo de dato se guarda en su almacén correspondiente.
+- Una salida superior al stock recibe `HTTP 400` con el mensaje especificado y no crea una orden.
+- Una asignación sin `assigned_to` se rechaza por validación; un consumo exige `assigned_to` nulo.
+- `GET /inventory/products` refleja el stock neto de los datos sembrados.
+- `office` está presente en modelos y schemas de respuesta.
+
+---
+
+_Documento interno — 4Geeks Academy · Track de Ingeniería de IA · Hito 5_
