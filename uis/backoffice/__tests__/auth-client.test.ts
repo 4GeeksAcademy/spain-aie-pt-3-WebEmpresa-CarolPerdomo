@@ -19,7 +19,7 @@ describe("Backoffice auth client", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
-    delete (globalThis as typeof globalThis & { window?: Window }).window;
+    Reflect.deleteProperty(globalThis, "window");
   });
 
   it("reads, saves, and clears a token", () => {
