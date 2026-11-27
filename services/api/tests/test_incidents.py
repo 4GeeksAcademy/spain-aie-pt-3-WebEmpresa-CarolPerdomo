@@ -7,6 +7,8 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 
 import pytest
+
+pytestmark = pytest.mark.integration
 os.environ.setdefault("SECRET_KEY", "test-only-incident-key-longer-than-32-bytes")
 
 from fastapi import FastAPI

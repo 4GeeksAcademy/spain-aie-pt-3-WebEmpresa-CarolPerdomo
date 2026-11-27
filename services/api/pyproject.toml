@@ -18,10 +18,18 @@ dependencies = [
 [project.scripts]
 seed = "nexova_suppliers.seed:seed_suppliers"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
     "pytest>=7.0.0",
+    "pytest-cov>=7.1.0",
 ]
+
+[tool.pytest.ini_options]
+addopts = ["-p", "no:cacheprovider", "-m", "not integration"]
+testpaths = ["tests"]
+norecursedirs = ["tmp*"]
+markers = ["integration: ASGI-level API behavior checks"]
 
 [[tool.uv.index]]
 name = "pypi"

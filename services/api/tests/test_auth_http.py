@@ -14,6 +14,8 @@ os.environ.setdefault("SECRET_KEY", "test-only-auth-http-key-longer-than-32-byte
 from fastapi import FastAPI
 import pytest
 
+pytestmark = pytest.mark.integration
+
 from nexova_suppliers.auth import AuthService
 from nexova_suppliers.database import SuppliersDB
 from nexova_suppliers.dependencies import get_db
