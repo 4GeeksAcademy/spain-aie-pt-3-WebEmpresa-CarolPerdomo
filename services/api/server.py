@@ -43,6 +43,19 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+    def handle_with_json_errors(self, operation):
+        try:
+            operation()
+        except (BrokenPipeError, ConnectionResetError):
+            return
+        except Exception as error:
+            print(f"Error interno en {self.command}: {type(error).__name__}", file=sys.stderr)
+            try:
+                self.json_response(500, {"error": "Se produjo un error interno. Inténtalo de nuevo más tarde."})
+            except OSError:
+                # The client may have disconnected while the error was being handled.
+                return
+
     def respond(self, status, body, content_type, headers=None):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -57,6 +70,9 @@ class Handler(BaseHTTPRequestHandler):
         self.respond(status, json.dumps(data, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
 
     def do_POST(self):
+        self.handle_with_json_errors(self._do_post)
+
+    def _do_post(self):
         global latest_csv, latest_id
         if self.path != "/api/incidents/analyze":
             self.json_response(404, {"error": "Ruta no encontrada."})
@@ -115,6 +131,9 @@ class Handler(BaseHTTPRequestHandler):
         self.json_response(200, {**summarize(result), "analysis_id": analysis_id})
 
     def do_GET(self):
+        self.handle_with_json_errors(self._do_get)
+
+    def _do_get(self):
         if self.path != "/api/incidents/results/export":
             self.json_response(404, {"error": "Ruta no encontrada."})
             return

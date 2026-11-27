@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AlertCircle, Loader, Trash2, Edit2, Plus, Check } from "lucide-react";
 
 interface Supplier {
@@ -49,12 +49,7 @@ export function SupplierDirectory() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  // Fetch suppliers
-  useEffect(() => {
-    fetchSuppliers();
-  }, [filterCountry, filterCategory]);
-
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -80,7 +75,12 @@ export function SupplierDirectory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, filterCategory, filterCountry]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void fetchSuppliers(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchSuppliers]);
 
   const handleCategoryToggle = (category: string) => {
     setFormData((prev) => ({

@@ -230,3 +230,36 @@ Update this file after completing a meaningful implementation or verification st
 - Backoffice ESLint and TypeScript checks pass. The production Next build succeeds when the existing Google Fonts import can access the network.
 - Completed browser acceptance against an isolated local database: login, empty summary, branch-origin highlighting and helper text, incident creation, list display, `open` -> `in_progress` -> `resolved` transitions, and summary totals by status, category, origin, and branch. The browser test used fictional data and its local database was removed afterward.
 
+## Error Handling Audit (2026-11-26)
+
+- Fixed a stray line in `nexova_suppliers/models.py` that prevented API test collection and added the missing `get_setting` helper used by authentication configuration.
+- Updated password-reset tests to verify random one-time tokens are stored only as hashes, and updated the Resend test to match the documented `RESEND_API_KEY`/`EMAIL_FROM` configuration and the module's `urlopen` seam.
+- Changed the supplier-seed test to use an isolated, uniquely named database under `services/api/data`, avoiding inaccessible Windows temporary folders.
+- Verification: the five API test files pass (13 tests); Python syntax compilation, ESLint, and TypeScript checks pass. `git diff --check` passes.
+- Both Next.js production builds compile the app, then stop at the type-check worker with `spawn EPERM`. Browser acceptance remains pending because the computer-use browser host was unavailable.
+- Running pytest against the entire `tests/` directory still encounters pre-existing inaccessible `tests/tmp*` directories during collection; explicitly listing the five test modules avoids those directories and runs the full suite.
+
+## Authentication Unit Test Battery (2026-11-27)
+
+- Added direct unit coverage for all six `/auth` endpoints plus password hashing, access-token decoding/expiry, and current-user token validation. The new endpoint unit module calls route functions directly and does not test HTTP response serialization.
+- Added Jest tests for both frontend auth clients, covering token storage, bearer headers, no-cache behavior, 401 cleanup, non-401 responses, and network failures.
+- Added root `TESTING.md`, Jest configuration/scripts, and pytest discovery settings that skip inaccessible legacy `tmp*` directories.
+- Verification: `uv run pytest` passes all 35 API tests. `npm run test:coverage -- --runInBand` passes all 18 Jest tests with 100% statements, branches, functions, and lines for both authentication clients.
+
+## Expanded Unit Test Coverage (2026-11-27)
+
+- Added direct unit tests for the user and profile route modules, covering successful operations, input boundaries, permission failures, conflicts, and missing records. These tests do not exercise HTTP serialization.
+- Moved the Backoffice auth utility Jest tests into `uis/backoffice/__tests__/` and configured app-local `test` and `test:coverage` scripts so that suite runs independently of the monorepo root.
+- Updated root `TESTING.md` with backend and app-local frontend test/coverage commands. Added `services/api/run_coverage.py` to preload bcrypt for coverage on the local CPython 3.15 Windows environment.
+- Verification: full API suite passes (45 tests). The coverage run reports 83% for `auth.py`, 87% for the auth routes, 100% for user routes, and 100% for profile routes (89% total across selected modules). Separate auth and user/profile coverage runs are documented with thresholds of 70% and 60% respectively.
+- Verification: `npm run test:coverage -- --runInBand` from `uis/backoffice/` passes 8 tests with 100% statements, branches, functions, and lines for `lib/auth-client.ts`.
+- The API suite emits one existing Starlette deprecation warning from the user update route's 422 status constant. It does not fail tests.
+
+## Unit Test Evaluation Checklist Review (2026-11-27)
+
+- Documented an AI-assisted cross-user access edge case and noted the pre-existing ASGI-level suites in `TESTING.md` so the unit/integration boundary is clear.
+- Updated the root Python pin to 3.15, added root dev dependencies for pytest/coverage/PyJWT, and configured root test discovery to run the API unit suite with API/shared packages on the import path.
+- Marked the seven pre-existing ASGI request/response checks as `integration`, outside the default unit run. They remain available via `uv run pytest -m integration`.
+- Verification from the root: literal `uv run pytest` passes 38 unit tests with 7 integration tests deselected; `uv run pytest -m integration` passes all 7 marked checks.
+- Re-ran Backoffice Jest coverage: all 8 tests pass with 100% coverage for the auth utility.
+

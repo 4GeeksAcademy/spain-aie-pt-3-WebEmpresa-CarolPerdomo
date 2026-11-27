@@ -1,6 +1,8 @@
 import asyncio
+import hashlib
 import json
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -12,12 +14,13 @@ os.environ.setdefault("SECRET_KEY", "test-only-auth-http-key-longer-than-32-byte
 from fastapi import FastAPI
 import pytest
 
+pytestmark = pytest.mark.integration
+
 from nexova_suppliers.auth import AuthService
 from nexova_suppliers.database import SuppliersDB
 from nexova_suppliers.dependencies import get_db
 from nexova_suppliers.models import RoleEnum, Supplier, SupplierCreate
 from nexova_suppliers.routes import auth, profiles, suppliers, users
-from nexova_suppliers.auth import ALGORITHM, SECRET_KEY
 
 
 def build_app(db: SuppliersDB) -> FastAPI:
@@ -166,14 +169,19 @@ def test_password_reset_and_change_password_are_secure_and_persistent(api, monke
 
     from urllib.parse import parse_qs, urlparse
     reset_token = parse_qs(urlparse(sent[0][1]).query)["token"][0]
-    assert AuthService.decode_password_reset_token(reset_token)["user_id"] == user["id"]
-    assert request(app, "POST", "/auth/reset-password", body={"token": "invalid", "new_password": "new-password"})[0] == 400
+    reset_token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
+    assert db.get_password_reset_token_user_id(reset_token_hash) == user["id"]
+    stored_tokens = db.password_reset_tokens_table.all()
+    assert any(record["token_hash"] == reset_token_hash for record in stored_tokens)
+    assert all(reset_token not in record.values() for record in stored_tokens)
+    assert request(app, "POST", "/auth/reset-password", body={"token": "x" * 32, "new_password": "new-password"})[0] == 400
 
-    expired_token = AuthService.create_password_reset_token(user["id"], user["email"])[0]
-    expired_claims = AuthService.decode_password_reset_token(expired_token)
-    expired_claims["exp"] = datetime.now(timezone.utc) - timedelta(seconds=1)
-    import jwt
-    expired_token = jwt.encode(expired_claims, SECRET_KEY, algorithm=ALGORITHM)
+    expired_token = secrets.token_urlsafe(32)
+    expired_token_hash = hashlib.sha256(expired_token.encode()).hexdigest()
+    db.create_password_reset_token(
+        user["id"], expired_token_hash,
+        datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
     assert request(app, "POST", "/auth/reset-password", body={"token": expired_token, "new_password": "new-password"})[0] == 400
 
     session_token = AuthService.create_access_token(user["id"], user["email"])

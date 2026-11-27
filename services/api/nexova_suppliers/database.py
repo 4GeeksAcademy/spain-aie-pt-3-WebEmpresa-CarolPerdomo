@@ -324,5 +324,10 @@ class SuppliersDB:
     def record_incident_import(self, source_key: str, incident_id: int) -> None:
         self.incident_imports_table.insert({"source_key": source_key, "incident_id": incident_id})
 
+    def rollback_incident_import(self, source_key: str, incident_id: int) -> None:
+        """Remove both writes when a historical import cannot be completed."""
+        self.incidents_table.remove(doc_ids=[incident_id])
+        self.incident_imports_table.remove(Query().source_key == source_key)
+
     def close(self):
         self.db.close()
