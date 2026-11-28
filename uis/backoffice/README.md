@@ -33,3 +33,7 @@ python services/api/server.py 8000
 ```
 
 Open `/incidencias` in the backoffice to upload a CSV and download the latest aggregate report. Next.js forwards requests to `http://127.0.0.1:8000` by default; set `INCIDENTS_API_URL` on the Next.js server if the API runs at another address. See [the API documentation](../../services/api/README.md) for the upload limit, in-memory result lifetime, and security limitations. Protect access to the backoffice: neither it nor the API currently implements authentication.
+
+## Inventory backoffice
+
+The authenticated inventory screens are available at `/backoffice/inventory/products`, `/backoffice/inventory/orders/inbound`, `/backoffice/inventory/orders/outbound` and `/backoffice/inventory/orders`. Inventory API calls are centralized in `lib/inventory.ts` and use the existing Bearer-token helper. Set `NEXT_PUBLIC_INVENTORY_API_URL` in `.env.local` to the running FastAPI origin (for example, `http://localhost:8000`). The product list marks stock of 1-3 units as low and 0 as out of stock; the server remains authoritative when validating an outgoing order.

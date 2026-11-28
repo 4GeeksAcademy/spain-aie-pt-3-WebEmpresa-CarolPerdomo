@@ -1,5 +1,16 @@
 # Development Progress
 
+## Hito 5 ? Backend de inventario (completado)
+
+- Añadidos modelos SQLModel, schemas Pydantic, endpoints autenticados bajo `/inventory` y seed idempotente en `services/api/nexova_suppliers/`.
+- El stock calculado y las validaciones de órdenes se acotan por activo y oficina; no se permite mezclar movimientos entre Valencia y Miami.
+- TinyDB conserva la autenticación existente; cada usuario obtiene un UUID persistente para atribuir entradas y salidas. Los activos y las órdenes se preparan para Supabase/PostgreSQL mediante `DATABASE_URL`.
+- `sqlmodel` y `psycopg2-binary` están declarados e instalados en el proyecto API; `uv.lock` fue actualizado.
+- Verificación realizada: OpenAPI publica los cinco endpoints de inventario; las 5 pruebas nuevas pasan (stock inicial y calculado, bloqueo de salidas inválidas, oficina, validación de asignación/consumo, mínimos del seed y UUID estable de TinyDB).
+- Verificaci?n de suite: los 18 archivos de prueba expl?citos de la API pasan (`18 passed`). La ejecuci?n por directorio a?n no puede recorrer varias carpetas temporales protegidas por permisos de Windows; se evit? el recorrido y el proveedor de temporales para completar la suite disponible.
+- Aceptaci?n en vivo contra Supabase: endpoints probados con autenticaci?n temporal; lectura de activos/?rdenes, creaci?n de activo, entrada, salida v?lida y rechazo de salida excesiva (`400`) pasaron. Se verific? que `user_uuid` coincide con TinyDB y que las FK apuntan a activos. El seed se ejecut? de nuevo sin duplicar; quedan 6 activos, 4 entradas y 3 salidas. Los registros QA y usuarios temporales se eliminaron.
+- Se retiró una línea suelta que causaba `IndentationError` en `models.py` y se restauró el helper `get_setting` faltante en `config.py`; ambos impedían importar la API antes de esta integración.
+
 ## Baseline Status
 
 **Milestone:** Public website and talent registration  
@@ -229,4 +240,11 @@ Update this file after completing a meaningful implementation or verification st
 - Modernized the remaining Pydantic v2 model configuration/validators and replaced deprecated naive UTC timestamp calls in authentication, password reset, and profile persistence. Legacy naive reset-token timestamps are still interpreted as UTC.
 - Backoffice ESLint and TypeScript checks pass. The production Next build succeeds when the existing Google Fonts import can access the network.
 - Completed browser acceptance against an isolated local database: login, empty summary, branch-origin highlighting and helper text, incident creation, list display, `open` -> `in_progress` -> `resolved` transitions, and summary totals by status, category, origin, and branch. The browser test used fictional data and its local database was removed afterward.
+
+## Inventory Backoffice Interface
+
+- Added authenticated product/stock, inbound order, outbound order, and read-only order history screens under `/backoffice/inventory/`.
+- Centralized inventory requests in `uis/backoffice/lib/inventory.ts`; requests use the existing Bearer-token helper and display API errors. Outbound forms show the selected product's current stock and warn when the requested amount exceeds it; server validation remains authoritative.
+- The product list highlights zero stock and low stock (1-3 units); the UI threshold is documented in the component and backoffice README.
+- Verification: targeted ESLint and `npx tsc --noEmit` pass. Full ESLint reports existing errors in `components/supplier-directory.tsx`. The first sandboxed build could not reach the existing Google Fonts imports; rerunning outside the restricted process environment completed successfully and included all four inventory routes. The development server is running at `http://localhost:3001`, and `/backoffice/inventory/products` returns HTTP 200. No tests were run.
 

@@ -1,9 +1,9 @@
 """Transactional email delivery through the Resend REST API."""
 import json
-import os
 import re
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+import urllib.error
+import urllib.request
+from .config import get_setting, load_project_env
 
 
 class EmailDeliveryError(RuntimeError):
@@ -27,11 +27,14 @@ def _safe_provider_message(body: bytes) -> str:
 
 
 def send_password_reset_email(to_email: str, reset_url: str) -> None:
-    api_key = os.getenv("RESEND_API_KEY")
+    load_project_env()
+    api_key = get_setting("RESEND_API_KEY")
     if not api_key:
         raise EmailDeliveryError("RESEND_API_KEY is not configured")
 
-    sender = os.getenv("EMAIL_FROM", "Nexova <onboarding@resend.dev>")
+    sender = get_setting("RESEND_FROM_EMAIL") or get_setting(
+        "EMAIL_FROM", "Nexova <onboarding@resend.dev>"
+    )
     payload = {
         "from": sender,
         "to": [to_email],
@@ -48,18 +51,18 @@ def send_password_reset_email(to_email: str, reset_url: str) -> None:
             "Si no solicitaste este cambio, ignora este mensaje."
         ),
     }
-    request = Request(
+    request = urllib.request.Request(
         "https://api.resend.com/emails",
         data=json.dumps(payload).encode("utf-8"),
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
     try:
-        with urlopen(request, timeout=10) as response:
+        with urllib.request.urlopen(request, timeout=10) as response:
             if not 200 <= response.status < 300:
                 raise EmailDeliveryError("Resend rejected the email request")
-    except HTTPError as exc:
+    except urllib.error.HTTPError as exc:
         provider_message = _safe_provider_message(exc.read(4096))
         raise EmailDeliveryError(f"Resend returned HTTP {exc.code}: {provider_message}") from None
-    except (URLError, TimeoutError) as exc:
+    except (urllib.error.URLError, TimeoutError) as exc:
         raise EmailDeliveryError(f"Resend could not be reached ({type(exc).__name__})") from None
