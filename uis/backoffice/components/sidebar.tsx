@@ -5,6 +5,7 @@ const navigation = [
   { label: "Resumen", href: "#resumen" },
   { label: "Operaciones", href: "#operaciones" },
   { label: "Prioridades", href: "#prioridades" },
+  { label: "Inventario", href: "/backoffice/inventory/products" },
   { label: "Incidencias", href: "/incidents" },
   { label: "Resumen incidencias", href: "/incidents/summary" },
   { label: "Proveedores", href: "/suppliers" },
@@ -12,7 +13,7 @@ const navigation = [
   { label: "Análisis CSV", href: "/incidencias" },
 ];
 
-export function Sidebar({ active = "resumen" }: { active?: "resumen" | "incidencias" }) {
+export function Sidebar({ active = "resumen" }: { active?: "resumen" | "incidencias" | "inventario" }) {
   return (
     <aside className="border-b border-line bg-pine text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-b-0 lg:border-r">
       <div className="flex items-center justify-between px-5 py-5 lg:block lg:px-7 lg:py-8">
@@ -35,9 +36,9 @@ export function Sidebar({ active = "resumen" }: { active?: "resumen" | "incidenc
             <li key={item.href} className="shrink-0">
               <Link
                 href={item.href}
-                aria-current={(active === "resumen" && index === 0) || (active === "incidencias" && item.href === "/incidencias") ? "page" : undefined}
+                aria-current={(active === "resumen" && index === 0) || (active === "incidencias" && item.href === "/incidencias") || (active === "inventario" && item.href === "/backoffice/inventory/products") ? "page" : undefined}
                 className={`block border-l-2 px-3 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf lg:px-4 ${
-                  ((active === "resumen" && index === 0) || (active === "incidencias" && item.href === "/incidencias"))
+                  ((active === "resumen" && index === 0) || (active === "incidencias" && item.href === "/incidencias") || (active === "inventario" && item.href === "/backoffice/inventory/products"))
                     ? "border-leaf bg-white/10 font-semibold text-white"
                     : "border-transparent text-white/70 hover:bg-white/5 hover:text-white"
                 }`}

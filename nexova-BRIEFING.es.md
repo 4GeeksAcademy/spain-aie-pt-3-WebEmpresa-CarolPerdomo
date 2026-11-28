@@ -554,13 +554,17 @@ _Documento interno — 4Geeks Academy · AI Engineering Track_
 # BRIEFING — Hito 5: Gestión de Inventario Backend con ORM y Doble Base de Datos
 ## Empresa: Nexova
 
+**Ruta del briefing complementario:** `05-backend-inventory-orm/nexova-BRIEFING.es.md`.
+
 > **Contexto de proyecto:** Este hito extiende el servicio FastAPI y la autenticación ya existentes en el monorepo. No se debe iniciar un repositorio nuevo ni rehacer esos componentes.
 >
-> **Ticket NXV-0201 — Sergio Molina (CTO):** Nexova necesita una API de inventario de equipos y materiales. Una entrada registra una compra o entrega recibida; una salida registra una asignación a un empleado o un consumo. El stock se deriva del historial de órdenes y no se puede modificar directamente. Todas las rutas se agrupan bajo `/inventory`. Cada orden debe guardar el UUID del usuario de TinyDB que la creó.
+> **Ticket NXV-0201 — Sergio Molina (CTO):** Nexova necesita una API de inventario de equipos y materiales.
+>
+> “Una ‘entrada de activos’ es una compra o entrega recibida por la empresa. Una ‘salida de activos’ es una asignación a un empleado o un evento de consumo. El stock siempre es el resultado neto de entradas menos salidas — no se puede establecer directamente. Todas las rutas bajo `/inventory`. Consultad la especificación de entidades. Usad el UUID del usuario de TinyDB en cada orden.”
 
 ## Empresa y problema
 
-Nexova cuenta con unos 120 empleados entre Valencia y Miami, seis oficinas, 30 agentes de soporte externalizados y ciclos de contratación constantes. IT y Operaciones carecen de visibilidad fiable sobre el hardware y los materiales disponibles, sus asignaciones y consumos. Se producen equipos extraviados o asignados por duplicado y faltantes de material sin aviso.
+Nexova cuenta con unos 120 empleados entre Valencia y Miami, seis oficinas, 30 agentes de soporte externalizados y ciclos de contratación constantes. Sus tres líneas de negocio —headhunting ejecutivo, atención al cliente externalizada y formación corporativa— dependen de que los equipos tecnológicos estén correctamente asignados. Sin embargo, IT y Operaciones carecen de visibilidad fiable sobre el hardware y los materiales disponibles, sus asignaciones y consumos: se extravían portátiles, se duplican asignaciones y los materiales de oficina se agotan sin aviso.
 
 El sistema mantendrá la autenticación y los usuarios en TinyDB, y almacenará productos y órdenes de inventario en Supabase (PostgreSQL). FastAPI deberá mantener activas ambas conexiones y utilizar cada una para los datos que le corresponden. No se deben replicar usuarios en Supabase.
 

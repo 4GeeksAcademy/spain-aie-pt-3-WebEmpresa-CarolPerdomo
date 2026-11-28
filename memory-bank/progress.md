@@ -241,3 +241,10 @@ Update this file after completing a meaningful implementation or verification st
 - Backoffice ESLint and TypeScript checks pass. The production Next build succeeds when the existing Google Fonts import can access the network.
 - Completed browser acceptance against an isolated local database: login, empty summary, branch-origin highlighting and helper text, incident creation, list display, `open` -> `in_progress` -> `resolved` transitions, and summary totals by status, category, origin, and branch. The browser test used fictional data and its local database was removed afterward.
 
+## Inventory Backoffice Interface
+
+- Added authenticated product/stock, inbound order, outbound order, and read-only order history screens under `/backoffice/inventory/`.
+- Centralized inventory requests in `uis/backoffice/lib/inventory.ts`; requests use the existing Bearer-token helper and display API errors. Outbound forms show the selected product's current stock and warn when the requested amount exceeds it; server validation remains authoritative.
+- The product list highlights zero stock and low stock (1-3 units); the UI threshold is documented in the component and backoffice README.
+- Verification: targeted ESLint and `npx tsc --noEmit` pass. Full ESLint reports existing errors in `components/supplier-directory.tsx`. The first sandboxed build could not reach the existing Google Fonts imports; rerunning outside the restricted process environment completed successfully and included all four inventory routes. The development server is running at `http://localhost:3001`, and `/backoffice/inventory/products` returns HTTP 200. No tests were run.
+
