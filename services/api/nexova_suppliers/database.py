@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from threading import RLock
 from typing import Optional
+from uuid import uuid4
 from .models import (
     Supplier, SupplierCreate, CategoryEnum, StatusEnum,
     IncidentCreate, IncidentStatusEnum, IncidentCategoryEnum,
@@ -25,6 +26,7 @@ class SuppliersDB:
         self.password_reset_tokens_table = self.db.table('password_reset_tokens')
         self.password_audit_table = self.db.table('password_audit')
         self._password_lock = RLock()
+        self._user_uuid_lock = RLock()
 
     @staticmethod
     def _utc_now() -> datetime:
@@ -65,6 +67,7 @@ class SuppliersDB:
             'email': email,
             'password': hashed_password,
             'role': role,
+            'uuid': str(uuid4()),
             'created_at': self._utc_now().isoformat()
         }
         user_id = self.users_table.insert(new_user)
@@ -101,6 +104,18 @@ class SuppliersDB:
         """Get user by ID."""
         result = self.users_table.get(doc_id=user_id)
         return self._add_id_to_result(result) if result else None
+
+    def get_or_create_user_uuid(self, user_id: int) -> Optional[str]:
+        """Return a stable UUID for a TinyDB user, migrating older records lazily."""
+        with self._user_uuid_lock:
+            user = self.users_table.get(doc_id=user_id)
+            if not user:
+                return None
+            user_uuid = user.get('uuid')
+            if not user_uuid:
+                user_uuid = str(uuid4())
+                self.users_table.update({'uuid': user_uuid}, doc_ids=[user_id])
+            return user_uuid
     
     def get_all_users(self) -> list:
         """Get all users (without passwords for security)."""

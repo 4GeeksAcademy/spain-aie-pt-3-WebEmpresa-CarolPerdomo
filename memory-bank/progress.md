@@ -1,5 +1,16 @@
 # Development Progress
 
+## Hito 5 ? Backend de inventario (completado)
+
+- Añadidos modelos SQLModel, schemas Pydantic, endpoints autenticados bajo `/inventory` y seed idempotente en `services/api/nexova_suppliers/`.
+- El stock calculado y las validaciones de órdenes se acotan por activo y oficina; no se permite mezclar movimientos entre Valencia y Miami.
+- TinyDB conserva la autenticación existente; cada usuario obtiene un UUID persistente para atribuir entradas y salidas. Los activos y las órdenes se preparan para Supabase/PostgreSQL mediante `DATABASE_URL`.
+- `sqlmodel` y `psycopg2-binary` están declarados e instalados en el proyecto API; `uv.lock` fue actualizado.
+- Verificación realizada: OpenAPI publica los cinco endpoints de inventario; las 5 pruebas nuevas pasan (stock inicial y calculado, bloqueo de salidas inválidas, oficina, validación de asignación/consumo, mínimos del seed y UUID estable de TinyDB).
+- Verificaci?n de suite: los 18 archivos de prueba expl?citos de la API pasan (`18 passed`). La ejecuci?n por directorio a?n no puede recorrer varias carpetas temporales protegidas por permisos de Windows; se evit? el recorrido y el proveedor de temporales para completar la suite disponible.
+- Aceptaci?n en vivo contra Supabase: endpoints probados con autenticaci?n temporal; lectura de activos/?rdenes, creaci?n de activo, entrada, salida v?lida y rechazo de salida excesiva (`400`) pasaron. Se verific? que `user_uuid` coincide con TinyDB y que las FK apuntan a activos. El seed se ejecut? de nuevo sin duplicar; quedan 6 activos, 4 entradas y 3 salidas. Los registros QA y usuarios temporales se eliminaron.
+- Se retiró una línea suelta que causaba `IndentationError` en `models.py` y se restauró el helper `get_setting` faltante en `config.py`; ambos impedían importar la API antes de esta integración.
+
 ## Baseline Status
 
 **Milestone:** Public website and talent registration  

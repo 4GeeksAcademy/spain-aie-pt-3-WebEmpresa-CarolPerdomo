@@ -2,6 +2,7 @@
 import os
 import re
 from pathlib import Path
+from typing import Optional
 
 
 def load_project_env() -> None:
@@ -22,3 +23,8 @@ def load_project_env() -> None:
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
         os.environ.setdefault(name, value)
+
+
+def get_setting(name: str, default: Optional[str] = None) -> Optional[str]:
+    """Read a setting already loaded from the process environment or root .env."""
+    return os.getenv(name, default)
