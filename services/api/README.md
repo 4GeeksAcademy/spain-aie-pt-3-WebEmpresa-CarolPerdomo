@@ -361,3 +361,26 @@ Los perfiles utilizan los campos `name`, `phone`, `address`, `specialization` y 
 ```bash
 python -m pytest -p no:cacheprovider -p no:tmpdir tests/test_incidents.py tests/test_auth_http.py tests/test_user_updates.py -q
 ```
+
+## Inventario con Supabase
+
+El módulo de inventario persiste activos y órdenes en PostgreSQL mediante SQLModel; la autenticación y los usuarios permanecen en TinyDB. Configura `DATABASE_URL` en el `.env` ignorado de la raíz con la URI **Connect → Direct → Transaction pooler → URI** de Supabase. Mantén intactas las variables existentes de TinyDB y `SECRET_KEY`, y no compartas ni subas la URI.
+
+Cuando `DATABASE_URL` está configurada, la API crea las tablas de inventario que falten al arrancar. Sin ella, la autenticación sigue disponible y los endpoints de inventario responden `503` con una explicación.
+
+Todos los endpoints de inventario requieren autenticación:
+
+- `GET /inventory/products` — lista activos con stock calculado desde entradas y salidas.
+- `POST /inventory/products` — crea un activo.
+- `GET /inventory/products/{id}` — detalle y stock actual.
+- `POST /inventory/orders/inbound` — registra una entrada.
+- `POST /inventory/orders/outbound` — registra una salida; rechaza salidas que exceden el stock.
+- `GET /inventory/orders` — lista las órdenes con los datos del activo.
+
+Después de registrar al menos un usuario en TinyDB y configurar Supabase, puedes cargar el seed idempotente desde la raíz:
+
+```bash
+uv run --project services/api python -m nexova_suppliers.seed_inventory
+```
+
+El seed usa el UUID estable del primer usuario TinyDB existente para atribuir las órdenes.

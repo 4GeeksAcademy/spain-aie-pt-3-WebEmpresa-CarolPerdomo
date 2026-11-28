@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import SuppliersDB
-from .routes import suppliers, auth, users, profiles, incidents
+from .routes import suppliers, auth, users, profiles, incidents, inventory
 from .routes.suppliers import set_db as set_suppliers_db
 from .dependencies import set_db
+from .inventory_database import close_inventory_database, initialize_inventory_database
 
 # Crear aplicación FastAPI
 app = FastAPI(
@@ -32,9 +33,15 @@ app.include_router(users.router)
 app.include_router(profiles.router)
 app.include_router(suppliers.router)
 app.include_router(incidents.router)
+app.include_router(inventory.router)
+
+@app.on_event("startup")
+def startup_inventory_database():
+    initialize_inventory_database()
 
 @app.on_event("shutdown")
 def shutdown_event():
+    close_inventory_database()
     db.close()
 
 @app.get("/", tags=["health"])
